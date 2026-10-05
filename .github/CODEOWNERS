@@ -1,0 +1,16 @@
+# Пути владельца (устав студии, ADR 0018): PR, который трогает хоть один из них, сливает только
+# владелец — автослияние такие PR не берёт (.github/workflows/automerge.yml читает этот файл
+# из main). Добавлять пути можно, убирать перечисленные в уставе — нельзя.
+/deploy/ @Nefeste
+/.github/ @Nefeste
+/server/ @Nefeste
+/src/money/ @Nefeste
+/store/forms.md @Nefeste
+/store/privacy* @Nefeste
+# политика конфиденциальности «Буквицы» — страница для сайта
+/store/site/privacy* @Nefeste
+# постоянный идентификатор приложения и подпись (ADR студии 0006)
+/app.json @Nefeste
+/plugins/ @Nefeste
+# выпущенный календарь задач дня не меняется (docs/adr/0002)
+/content/calendar.yaml @Nefeste
