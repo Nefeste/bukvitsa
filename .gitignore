@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-web/
+.expo/
+/android/
+/ios/
+*.log
+.DS_Store
+src/content/generated/
+tools/e2e/out/

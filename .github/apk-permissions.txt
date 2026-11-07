@@ -1,0 +1,5 @@
+# Разрешения, которые может просить релизный APK «Буквицы» (действие android-contents набора
+# gornitsa-kit, шаг «Содержимое» в android.yml): строка — полное имя, «*» в конце — любая концовка.
+# Сети в 0.x нет (ADR студии 0005; INTERNET вырезает plugins/with-release-no-internet.js). Реклама в 1.0
+# — решение владельца (Issue); с ней сюда добавится INTERNET. Файл — путь владельца.
+games.gornitsa.bukvitsa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION

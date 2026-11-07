@@ -1,0 +1,37 @@
+# Автослияние (устав студии, ADR 0018): PR сливается сам (squash), когда на нём метка «ревью: ок»
+# от ревьюера из другой сессии, «Типы, линтер, тесты» (pr.yml) зелёные на одобренном коммите и в
+# PR нет путей владельца из `.github/CODEOWNERS`. Метка одобряет коммит; новый коммит её снимает.
+#
+# Логика — в общем наборе студии (ADR студии 0022): Nefeste/gornitsa-kit, workflow automerge.yml.
+# `pull_request_target` и `workflow_run` берут этот файл из `main`; код PR не запускается.
+name: Автослияние
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, reopened, ready_for_review]
+  workflow_run:
+    workflows: [Проверки PR]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: read
+
+concurrency:
+  group: automerge-${{ github.event.pull_request.head.ref || github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  automerge:
+    if: >-
+      (github.event_name == 'pull_request_target' &&
+        ((github.event.action != 'labeled' && github.event.action != 'unlabeled') || github.event.label.name == 'ревью: ок')) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request')
+    uses: Nefeste/gornitsa-kit/.github/workflows/automerge.yml@v1
+    with:
+      check: 'Типы, линтер, тесты'
+      label: 'ревью: ок'
+    secrets:
+      AUTOMERGE_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}

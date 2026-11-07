@@ -1,0 +1,6 @@
+# CODEOWNERS: пути, которые сливает только владелец (ADR студии 0018).
+/.github/         @Nefeste
+/app.json         @Nefeste
+/plugins/         @Nefeste
+/src/money/       @Nefeste
+/store/           @Nefeste

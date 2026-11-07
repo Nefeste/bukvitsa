@@ -1,0 +1,34 @@
+# Выкладывает APK из выпуска на странице Releases в черновик новой версии RuStore. Логика — в общем
+# наборе студии (ADR студии 0022): Nefeste/gornitsa-kit, workflow rustore.yml. Только руками:
+# Actions → RuStore → Run workflow; на модерацию — только с отметкой «submit». Нужны секрет
+# RUSTORE_API_TOKEN и переменная или секрет RUSTORE_KEY_ID. Первую версию RuStore принимает только
+# через консоль.
+name: RuStore
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег выпуска (пусто — последний)'
+        required: false
+        default: ''
+      submit:
+        description: 'Сразу отправить на модерацию'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    uses: Nefeste/gornitsa-kit/.github/workflows/rustore.yml@v1
+    with:
+      package: games.gornitsa.bukvitsa
+      apk: 'bukvitsa-*.apk'
+      tag: ${{ inputs.tag }}
+      submit: ${{ inputs.submit }}
+      key-id: ${{ vars.RUSTORE_KEY_ID }}
+    secrets:
+      RUSTORE_API_TOKEN: ${{ secrets.RUSTORE_API_TOKEN }}
+      RUSTORE_KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
