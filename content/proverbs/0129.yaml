@@ -1,0 +1,18 @@
+id: proverb-0129
+version: 1
+kind: proverb
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Хорошо — худо
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Хорошо_—_Худо
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.horosho-hudo.27.1
+about: Из раздела «Хорошо — худо». У Даля рядом — «Так хорошо, что любо».
+text: Что худо, то и плохо.
+answer: худо
+gap: 2

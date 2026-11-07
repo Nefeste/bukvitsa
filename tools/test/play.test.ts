@@ -1,77 +1,114 @@
-// Ход решения (src/engine/play.ts): ошибка считается, верные буквы остаются, подсказка бесплатна
-// и считается, «Показать ответ» решает за игрока (docs/08-game-design.md, «Как решается задача»).
+// Ход решения (src/engine/play.ts) по 08-game-design.md: ряд букв, выбор из четырёх, найти в строке,
+// расставить части; три подсказки по порядку; подсмотренная задача.
 import { describe, expect, test } from 'bun:test';
-import { endingChoices, endingPick, extraPick, gapErase, gapTap, gapTiles, partsPick, partsShuffled, showAnswer, startPlay, takeHint, type Task } from '../../src/engine';
+import { choose, hint, nextHint, openWord, pickPart, place, startPlay, tapLetter, unplace, unpickPart, usedTiles, type Task } from '../../src/engine';
 
-const base = { level: 1 as const, proverb: 'dal.test.1.1', section: 'Проба' };
-const gap: Task = { ...base, id: 't.test.1', kind: 'gap', text: 'Тише едешь — дальше будешь.', word: 2 };
+const base = { version: 1, text: '', about: 'о', source: 'и' };
+const proverb: Task = { ...base, id: 'proverb-9001', kind: 'proverb', prompt: 'Скучен день до вечера, коли делать ____.', answer: 'нечего', row: ['е', 'о', 'н', 'ч', 'т', 'г', 'е', 'а', 'о'] };
+const tileOf = (t: Task, c: string, taken: Set<number>) => (t.row ?? []).findIndex((x, i) => x === c && !taken.has(i));
 
-/** номер свободной плитки с буквой */
-const tileOf = (task: Task, c: string, taken: (number | null)[]) => gapTiles(task).findIndex((t, i) => t === c && !taken.includes(i));
+function type(t: Task, word: string, p = startPlay(t)) {
+  for (const c of word) p = place(t, p, tileOf(t, c, usedTiles(p)));
+  return p;
+}
 
-describe('пропущенное слово', () => {
-  test('верно с первой попытки — без ошибок', () => {
-    let p = startPlay(gap);
-    for (const c of 'ДАЛЬШЕ') p = gapTap(gap, p, tileOf(gap, c, p.slots));
-    expect(p.result).toEqual({ done: true, hints: 0, mistakes: 0, shown: false });
+describe('ряд букв', () => {
+  test('верно с первой попытки', () => {
+    expect(type(proverb, 'нечего').result).toEqual({ done: true, tries: 1, hints: 0, peeked: false });
   });
-  test('ошибка: верные буквы запираются, неверные возвращаются; стереть запертую нельзя', () => {
-    let p = startPlay(gap);
-    const tiles = gapTiles(gap);
-    const wrong = tiles.findIndex(c => !'ДАЛЬШЕ'.includes(c));
-    for (const c of 'ДАЛЬШ') p = gapTap(gap, p, tileOf(gap, c, p.slots));
-    p = gapTap(gap, p, wrong);
-    expect(p.result.mistakes).toBe(1);
-    expect(p.wrong).toBe(true);
-    expect(p.locked).toEqual([true, true, true, true, true, false]);
-    expect(p.slots[5]).toBeNull();
-    expect(gapErase(p, 0)).toBe(p);
-    p = gapTap(gap, p, tileOf(gap, 'Е', p.slots));
-    expect(p.result).toEqual({ done: true, hints: 0, mistakes: 1, shown: false });
-  });
-  test('подсказки до конца решают задачу и считаются', () => {
-    let p = startPlay(gap);
-    for (let i = 0; i < 6; i++) p = takeHint(gap, p);
-    expect(p.result).toEqual({ done: true, hints: 6, mistakes: 0, shown: false });
-    expect(takeHint(gap, p)).toBe(p);
-  });
-  test('показать ответ; решённая открывается с ответом и прежним итогом', () => {
-    const p = showAnswer(gap, startPlay(gap));
-    expect(p.result.shown).toBe(true);
+  test('неверно — встряхивание, буквы остаются; игрок убирает сам; решена со второй попытки', () => {
+    let p = type(proverb, 'нечеао');
+    expect(p.shake).toBe(true);
+    expect(p.result.tries).toBe(1);
     expect(p.slots.every(s => s != null)).toBe(true);
-    const again = startPlay(gap, p.result);
-    expect(again.result).toEqual(p.result);
-    expect(again.slots).toEqual(p.slots);
+    p = unplace(p, 4);
+    p = unplace(p, 5);
+    p = type(proverb, 'го', p);
+    expect(p.result).toEqual({ done: true, tries: 2, hints: 0, peeked: false });
+  });
+  test('подсказки по порядку: убрать лишние, открыть букву, показать ответ', () => {
+    let p = startPlay(proverb);
+    expect(nextHint(proverb, p)).toBe(1);
+    p = hint(proverb, p);
+    expect(p.hidden.length).toBe(3);
+    expect(nextHint(proverb, p)).toBe(2);
+    p = hint(proverb, p);
+    expect(p.locked[0]).toBe(true);
+    expect(unplace(p, 0)).toBe(p);
+    p = type(proverb, 'ечего', p);
+    expect(p.result).toEqual({ done: true, tries: 1, hints: 2, peeked: false });
+  });
+  test('третья подсказка — задача подсмотрена; подсмотренную можно решить заново', () => {
+    let p = startPlay(proverb);
+    for (let i = 0; i < 3; i++) p = hint(proverb, p);
+    expect(p.result.peeked).toBe(true);
+    expect(nextHint(proverb, p)).toBeNull();
+    const again = startPlay(proverb, p.result);
+    expect(again.result.done).toBe(false);
+    const solved = startPlay(proverb, { done: true, tries: 1, hints: 0, peeked: false });
+    expect(solved.slots.every(s => s != null)).toBe(true);
   });
 });
 
-describe('другие виды', () => {
-  const ending: Task = { ...base, id: 't.test.2', kind: 'ending', text: 'Тише едешь — дальше будешь.', cut: 2, wrong: ['не беда платить.', 'и каши не сварить.', 'к оттепели.'] };
-  test('конец: неверный гаснет и считается, подсказка гасит два', () => {
-    const wrong = endingChoices(ending).find(c => c !== 'дальше будешь.')!;
-    let p = endingPick(ending, startPlay(ending), wrong);
-    expect(p.result.mistakes).toBe(1);
-    expect(endingPick(ending, p, wrong)).toBe(p);
-    p = takeHint(ending, p);
-    expect(new Set(p.dimmed).size).toBeGreaterThanOrEqual(2);
-    expect(p.dimmed).not.toContain('дальше будешь.');
-    p = endingPick(ending, p, 'дальше будешь.');
-    expect(p.result.done).toBe(true);
+describe('выбор из четырёх', () => {
+  const word: Task = { ...base, id: 'word-9001', kind: 'old-word', prompt: 'стар. азбука, букварь', answer: 'буквица', options: ['пропись', 'буквица', 'устав', 'грамотка'] };
+  test('неверный гаснет; после третьего неверного — подсмотрена', () => {
+    let p = choose(word, startPlay(word), 0);
+    expect(p.dimmed).toEqual([0]);
+    p = choose(word, p, 2);
+    p = choose(word, p, 3);
+    expect(p.result.peeked).toBe(true);
   });
-  const parts: Task = { ...base, id: 't.test.3', kind: 'parts', text: 'Не то хлеб, что в поле, а то, что в сусеке.', starts: [0, 3, 8] };
-  test('по частям: неверная часть не встаёт', () => {
-    let p = partsPick(parts, startPlay(parts), 1);
+  test('подсказки: два неверных гаснут, потом первая буква; верный выбор', () => {
+    let p = hint(word, startPlay(word));
+    expect(p.dimmed.length).toBe(2);
+    expect(p.dimmed).not.toContain(1);
+    p = hint(word, p);
+    expect(p.first).toBe('Б');
+    p = choose(word, p, 1);
+    expect(p.result).toEqual({ done: true, tries: 1, hints: 2, peeked: false });
+  });
+});
+
+describe('найти в строке', () => {
+  const extra: Task = { ...base, id: 'extra-letter-9001', kind: 'extra-letter', prompt: 'Не раброта сушит, а забота.', answer: '1:3', words: ['Не', 'раброта', 'сушит', 'а', 'забота'] };
+  test('слово раскрывается по буквам, касание буквы — ответ; три неверных — подсмотрена', () => {
+    let p = tapLetter(extra, startPlay(extra), 0);
+    expect(p.result.tries).toBe(0); // слово не раскрыто — касание не считается
+    p = openWord(p, 2);
+    p = tapLetter(extra, p, 0);
+    p = openWord(p, 1);
+    p = tapLetter(extra, p, 3);
+    expect(p.result).toEqual({ done: true, tries: 2, hints: 0, peeked: false });
+    let q = openWord(startPlay(extra), 0);
+    for (const k of [0, 1]) q = tapLetter(extra, q, k);
+    q = openWord(q, 2);
+    q = tapLetter(extra, q, 0);
+    expect(q.result.peeked).toBe(true);
+  });
+  test('подсказка подсвечивает слово, вторая — ответ', () => {
+    const p = hint(extra, startPlay(extra));
+    expect(p.marked).toBe(1);
+    expect(nextHint(extra, p)).toBe(3);
+  });
+});
+
+describe('расставить части', () => {
+  const parts: Task = { ...base, id: 'parts-9001', kind: 'parts', prompt: '', answer: '2,0,1', parts: ['что в поле, а то,', 'что в сусеке.', 'Не то хлеб,'] };
+  test('всё собрано — проверка; неверно — части возвращаются', () => {
+    let p = startPlay(parts);
+    for (const i of [0, 1, 2]) p = pickPart(parts, p, i);
+    expect(p.shake).toBe(true);
     expect(p.chosen).toEqual([]);
-    expect(p.result.mistakes).toBe(1);
-    for (const i of [0, 1, 2]) p = partsPick(parts, p, i);
-    expect(p.result.done).toBe(true);
-    expect(partsShuffled(parts).length).toBe(3);
+    for (const i of [2, 0, 1]) p = pickPart(parts, p, i);
+    expect(p.result).toEqual({ done: true, tries: 2, hints: 0, peeked: false });
   });
-  const extra: Task = { ...base, id: 't.test.4', kind: 'extra', text: 'Тише едешь — дальше будешь.', word: 2, at: 2, letter: 'о' };
-  test('лишняя буква: касание слова', () => {
-    let p = extraPick(extra, startPlay(extra), 0);
-    expect(p.result.mistakes).toBe(1);
-    p = extraPick(extra, p, 2);
-    expect(p.result).toEqual({ done: true, hints: 0, mistakes: 1, shown: false });
+  test('подсказка ставит первую часть, её не убрать', () => {
+    let p = hint(parts, startPlay(parts));
+    expect(p.chosen).toEqual([2]);
+    expect(unpickPart(p, 0)).toBe(p);
+    p = pickPart(parts, p, 0);
+    p = pickPart(parts, p, 1);
+    expect(p.result).toEqual({ done: true, tries: 1, hints: 1, peeked: false });
   });
 });

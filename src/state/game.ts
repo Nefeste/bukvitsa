@@ -1,35 +1,23 @@
 // Состояние приложения: какой экран, итоги задач, настройки. Экраны получают его одним объектом.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
-import { dailyTasks, marksLine, type Result } from '../engine';
-import { content } from '../content';
+import type { Result } from '../engine';
 import { setLessMotion } from '../ui/motion';
 import { lessMotionOf, type Settings } from './settings';
 import type { Results } from './progress';
 import { loadResults, loadSettings, saveResults, saveSettings } from './storage';
 import { todayISO } from './today';
 
-/** Откуда открыта задача: день календаря или тетрадь. */
-export type Flow = { from: 'day'; date: string } | { from: 'notebook'; id: string };
+/** Откуда открыта задача: задача дня (с датой) или тетрадь. */
+export type Flow = { from: 'daily'; date: string } | { from: 'notebook'; key: string };
 
 export type Screen =
   | { name: 'home' }
   | { name: 'task'; flow: Flow; id: string }
-  | { name: 'day'; date: string }
   | { name: 'archive' }
-  | { name: 'notebooks' }
-  | { name: 'notebook'; id: string }
+  | { name: 'notebook'; key: string }
   | { name: 'settings' }
   | { name: 'about' };
-
-export function flowTasks(flow: Flow): string[] {
-  return flow.from === 'day' ? dailyTasks(content.calendar, flow.date) : (content.notebooks.find(b => b.id === flow.id)?.tasks ?? []);
-}
-
-/** Кружки итога по списку задач. */
-export function marksOf(rs: Results, ids: readonly string[]): string {
-  return marksLine(ids.map(id => rs[id]));
-}
 
 export function useGame() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });

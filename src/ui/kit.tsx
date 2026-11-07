@@ -1,7 +1,6 @@
 // из shelter: src/ui/kit.tsx @ fa04538 — текст, кнопка, карточка на токенах студии (src/ui/theme.ts).
 import React from 'react';
 import { Pressable, type StyleProp, StyleSheet, Text, type TextStyle, View, type ViewStyle } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { C, R, S } from './theme';
 import { FONTS } from './fonts';
 
@@ -56,34 +55,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: C.paper, borderRadius: R.card, borderWidth: 1, borderColor: C.line, padding: 14, gap: 6 },
   header: { gap: 4, paddingBottom: 4 },
   backText: { color: C.inkSoft, fontSize: S.body, fontFamily: FONTS.medium },
-  /** текст строки кружков — для чтения с экрана и сценария, глазу не виден */
-  hidden: { position: 'absolute', width: 1, height: 1, opacity: 0 },
 });
-
-/**
- * Строка кружков итога, нарисованная кодом: ● сами, ◐ с подсказкой или ошибкой, ○ ответ открыт,
- * · не решена. Значки шрифта рисуются по-разному на разных телефонах, поэтому — свои круги.
- */
-export function Marks({ marks, size = 22, testID }: { marks: string; size?: number; testID?: string }) {
-  const r = size / 2 - 2;
-  return (
-    <View testID={testID} accessibilityLabel={marks} style={{ flexDirection: 'row', gap: size / 3 }}>
-      <Text style={styles.hidden}>{marks}</Text>
-      {[...marks].map((m, i) => (
-        <Svg key={i} width={size} height={size}>
-          {m === '·' ? (
-            <Circle cx={size / 2} cy={size / 2} r={2.5} fill={C.inkSoft} />
-          ) : (
-            <>
-              <Circle cx={size / 2} cy={size / 2} r={r} stroke={C.spruce} strokeWidth={2} fill={m === '●' ? C.spruce : 'none'} />
-              {m === '◐' ? <Path d={`M ${size / 2} ${size / 2 - r} A ${r} ${r} 0 0 0 ${size / 2} ${size / 2 + r} Z`} fill={C.spruce} /> : null}
-            </>
-          )}
-        </Svg>
-      ))}
-    </View>
-  );
-}
 
 /** Строка с заголовком экрана и «Назад». */
 export function Header({ title, onBack, back }: { title: string; onBack?: () => void; back?: string }) {

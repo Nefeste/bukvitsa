@@ -1,0 +1,19 @@
+id: extra-letter-0149
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Терпение — надежда
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Терпение_—_Надежда
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.terpenie-nadezhda.33.1
+about: "Из раздела «Терпение — надежда». У Даля в скобках: или: и на наш двор. У Даля рядом — «Власть создателя»."
+text: Взойдет солнышко и к нам на двор.
+word: 2
+letter: п
+position: 8

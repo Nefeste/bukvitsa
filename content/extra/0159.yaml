@@ -1,0 +1,19 @@
+id: extra-letter-0159
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Начало — конец
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Начало_—_Конец
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.nachalo-konec.161.2
+about: Из раздела «Начало — конец». У Даля рядом — «Все дело в почине».
+text: Как ни верти, да дело верши!
+word: 6
+letter: н
+position: 4

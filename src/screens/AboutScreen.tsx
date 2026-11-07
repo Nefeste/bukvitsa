@@ -9,15 +9,15 @@ import { Card, Header, Txt } from '../ui/kit';
 import { C } from '../ui/theme';
 
 export function AboutScreen({ game }: { game: Game }) {
-  const s = content.source;
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Header title={T.about.title} onBack={() => game.setScreen({ name: 'home' })} back={T.task.back} />
       <Card>
         <Txt testID="about-version">{T.about.version(APP_VERSION, APP_BUILD)}</Txt>
-        <Txt dim>{T.about.source(s.author, s.title, s.year)}</Txt>
+        <Txt dim>{T.about.sources}</Txt>
         {content.draft ? <Txt dim>{T.about.draft(content.draft)}</Txt> : null}
         <Txt dim>{T.about.noNet}</Txt>
+        <Txt dim>{T.about.fonts}</Txt>
         <Txt dim>{T.about.studio}</Txt>
         <Txt dim>{T.about.support}</Txt>
       </Card>

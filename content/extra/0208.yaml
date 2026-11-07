@@ -1,0 +1,19 @@
+id: extra-letter-0208
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Гость — хлебосольство
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Гость_—_Хлебосольство
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.gost-hlebosolstvo.342.1
+about: Из раздела «Гость — хлебосольство». У Даля рядом — «Куры разодрались — к гостям либо к вестям».
+text: В гости ходить — надо и к себе водить.
+word: 3
+letter: н
+position: 2

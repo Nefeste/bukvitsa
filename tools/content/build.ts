@@ -1,125 +1,209 @@
-// Сборка содержания: content/ → src/content/generated/bundle.ts (в git не лежит).
-// Проверяет каждую запись (docs/09-content.md, «Проверка сборкой») и падает на первой же ошибке
-// списком всех ошибок. Пословицы берутся из скачанного источника — сборка работает без сети.
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+// Сборка контента (docs/09-content.md, §4–5; specs/2026-10-content-pipeline.md):
+// content/ → src/content/generated/pack.ts (не в git). Ряд букв, варианты и части готовит сборка
+// детерминированно от id и version (ADR 0005). Ошибки — списком, сборка красная.
+//
+//   bun tools/content/build.ts [--check] [--release]
+//   --check   — только проверить, ничего не писать
+//   --release — в набор только `review: checked`; календарь — только на checked и с запасом ≥ 365 дней
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
-import { dayNumber } from '../../src/engine/day';
-import { endingSplit, gapAnswer, partsInOrder, words } from '../../src/engine/tasks';
-import type { Task } from '../../src/engine/types';
-import type { Bundle, Notebook } from '../../src/content/types';
+import { dayNumber, weekday, type Calendar } from '../../src/engine/day';
+import { tokens, words } from '../../src/engine/words';
+import type { Kind as TaskKind, Task } from '../../src/engine/types';
+import type { Notebook, Pack } from '../../src/content/types';
 import { loadPool } from './pool';
-import type { Rec } from './pick';
+import { FOLDERS, readRecords, type Rec } from './records';
+import { letterRow, shuffleNotSame } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
+const RU = /^[а-яё]+(?:-[а-яё]+)*$/;
 
-export function build(root = ROOT): { bundle: Bundle; errors: string[]; report: string[] } {
+interface Book {
+  key: string;
+  title: string;
+  blurb: string;
+  free?: boolean | string;
+}
+
+const yes = (v: unknown) => v === true || v === 'yes';
+
+/** Источник одной строкой: «В. И. Даль. Пословицы русского народа. 2-е изд., 1879, „Работа — Праздность“». */
+function sourceLine(r: Rec): string {
+  const s = r.source;
+  const where = s.section ? `«${s.section}»` : s.page ? `с. ${s.page}` : '';
+  return `${s.work}. ${s.edition.split(' (')[0]}${where ? `, ${where}` : ''}`;
+}
+
+/** Запись → задача движка; ошибки — в `errors`. */
+export function toTask(r: Rec, errors: string[]): Task | null {
+  const at = r.file ?? r.id;
+  const base = { id: r.id, version: r.version, kind: r.kind as TaskKind, text: r.text ?? '', about: r.about ?? '', source: sourceLine(r) };
+  const answerOk = (a: string | undefined) => {
+    const letters = (a ?? '').replace(/-/g, '');
+    if (!a || !RU.test(a) || letters.length < 3 || letters.length > 12) {
+      errors.push(`${at}: ответ «${a ?? ''}» — не 3–12 русских букв`);
+      return false;
+    }
+    return true;
+  };
+  if (r.kind === 'proverb') {
+    if (!r.text || !answerOk(r.answer)) return null;
+    const ws = words(r.text);
+    if (!r.gap || ws[r.gap - 1]?.toLowerCase() !== r.answer) {
+      errors.push(`${at}: gap ${r.gap} не указывает на ответ «${r.answer}»`);
+      return null;
+    }
+    const prompt = tokens(r.text).map(t => (t.word && t.n === r.gap! - 1 ? '____' : t.text)).join('');
+    return { ...base, prompt, answer: r.answer!, row: letterRow(r.answer!, r.id, r.version) };
+  }
+  if (r.kind === 'riddle') {
+    if (!r.text || !answerOk(r.answer)) return null;
+    return { ...base, prompt: r.text, answer: r.answer!, row: letterRow(r.answer!, r.id, r.version) };
+  }
+  if (r.kind === 'old-word') {
+    const word = String(r.word ?? '');
+    if (!answerOk(word)) return null;
+    const opts = r.options ?? [];
+    if (opts.length < 3 || opts.some(o => o === word)) {
+      errors.push(`${at}: у старого слова нужно три неверных варианта, не совпадающих с ответом`);
+      return null;
+    }
+    if (!r.meaning) errors.push(`${at}: нет толкования`);
+    const options = shuffleNotSame([word, ...opts.slice(0, 3)], r.id, r.version);
+    return { ...base, text: `${word} — ${r.meaning ?? ''}`, prompt: r.meaning ?? '', answer: word, options };
+  }
+  if (r.kind === 'extra-letter') {
+    if (!r.text || !r.letter || !/^[а-яё]$/.test(r.letter) || !r.word || !r.position) {
+      errors.push(`${at}: у лишней буквы нужны text, word, letter (одна строчная), position`);
+      return null;
+    }
+    const ws = words(r.text);
+    const wi = Number(r.word) - 1;
+    const w = ws[wi];
+    if (!w || r.position < 2 || r.position > w.length) {
+      errors.push(`${at}: нет слова ${r.word} или позиция ${r.position} не внутри слова`);
+      return null;
+    }
+    const changed = w.slice(0, r.position - 1) + r.letter + w.slice(r.position - 1);
+    const shown = ws.map((x, i) => (i === wi ? changed : x));
+    const prompt = tokens(r.text).map(t => (t.word ? shown[t.n] : t.text)).join('');
+    return { ...base, prompt, answer: `${wi}:${r.position - 1}`, words: shown };
+  }
+  // parts
+  const parts = r.parts ?? [];
+  if (!r.text || parts.length < 3 || parts.length > 4 || parts.join(' ').replace(/\s+/g, ' ') !== r.text.replace(/\s+/g, ' ')) {
+    errors.push(`${at}: части (3–4) не складываются в текст`);
+    return null;
+  }
+  const shuffled = shuffleNotSame(parts, r.id, r.version);
+  const used = new Set<number>();
+  const order = parts.map(p => {
+    const i = shuffled.findIndex((s, k) => s === p && !used.has(k));
+    used.add(i);
+    return i;
+  });
+  return { ...base, prompt: '', answer: order.join(','), parts: shuffled };
+}
+
+export function build(root = ROOT, opts: { release?: boolean; today?: string } = {}) {
   const errors: string[] = [];
   const pool = loadPool(root);
-  const raw = (parse(readFileSync(join(root, 'content', 'sources.yaml'), 'utf8')) as Record<string, { author: string; title: string; year: number; url: string }>)['dal-1862'];
-  const src = { author: raw.author, title: raw.title, year: raw.year, url: raw.url };
-  const books = (parse(readFileSync(join(root, 'content', 'notebooks.yaml'), 'utf8')) as { notebooks: { id: string; title: string; about: string }[] }).notebooks;
-  const cal = parse(readFileSync(join(root, 'content', 'calendar.yaml'), 'utf8')) as { from: string; size: number; days?: string[][] };
+  const stop = readFileSync(join(root, 'content', 'stoplist.txt'), 'utf8')
+    .split('\n')
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s && !s.startsWith('#'));
+  const released = JSON.parse(readFileSync(join(root, 'content', 'released.json'), 'utf8')) as Record<string, number>;
+  const books = parse(readFileSync(join(root, 'content', 'notebooks.yaml'), 'utf8')) as Book[];
+  const keys = new Set(books.map(b => b.key));
+  const raw = parse(readFileSync(join(root, 'content', 'calendar.yaml'), 'utf8')) as { from: string | null; days: Record<string, string> | null };
+  const recs = readRecords(root);
 
-  const tasks: Record<string, Task> = {};
-  const usedProverb = new Map<string, string>();
-  let draft = 0;
-  const files = readdirSync(join(root, 'content', 'tasks')).filter(f => f.endsWith('.yaml')).sort();
-  for (const f of files) {
-    const recs = (parse(readFileSync(join(root, 'content', 'tasks', f), 'utf8')) as Rec[] | null) ?? [];
-    for (const r of recs) {
-      const at = `${f}: ${r.id}`;
-      if (tasks[r.id]) errors.push(`${at}: повтор идентификатора`);
-      if (r.review !== 'draft' && r.review !== 'checked') errors.push(`${at}: review — draft или checked`);
-      if (r.review === 'draft') draft++;
-      const p = pool.byId.get(r.proverb);
-      if (!p) {
-        errors.push(`${at}: нет пословицы ${r.proverb} в источнике`);
-        continue;
-      }
-      if (pool.why.has(p.id)) errors.push(`${at}: пословица ${p.id} не разрешена — ${pool.why.get(p.id)}`);
-      const prev = usedProverb.get(p.id);
-      if (prev) errors.push(`${at}: пословица ${p.id} уже в задаче ${prev}`);
-      usedProverb.set(p.id, r.id);
-      const ws = words(p.text);
-      const t: Task = { id: r.id, kind: r.kind, level: r.level, text: p.text, proverb: p.id, section: p.section };
-      if (r.kind === 'gap' || r.kind === 'extra') {
-        if (r.word == null || r.word < 0 || r.word >= ws.length) errors.push(`${at}: нет слова ${r.word}`);
-        t.word = r.word;
-      }
-      if (r.kind === 'gap' && gapAnswer(t).length < 3) errors.push(`${at}: короткое скрытое слово`);
-      if (r.kind === 'extra') {
-        if (!r.letter || !/^[а-яё]$/.test(r.letter)) errors.push(`${at}: лишняя буква — одна строчная`);
-        t.at = r.at;
-        t.letter = r.letter;
-      }
-      if (r.kind === 'ending') {
-        t.cut = r.cut;
-        const { head, tail } = endingSplit(t);
-        if (!head || !tail) errors.push(`${at}: начало или конец пустые`);
-        const wrong: string[] = [];
-        for (const w of r.wrong ?? []) {
-          const [id, cut] = w.split('@');
-          const q = pool.byId.get(id);
-          if (!q) {
-            errors.push(`${at}: нет пословицы ${id} для чужого конца`);
-            continue;
-          }
-          const tt = endingSplit({ ...t, text: q.text, cut: Number(cut) }).tail;
-          if (tt === tail) errors.push(`${at}: чужой конец совпал с верным`);
-          wrong.push(tt);
-        }
-        if (wrong.length !== 3 || new Set(wrong).size !== 3) errors.push(`${at}: нужно три разных чужих конца`);
-        t.wrong = wrong;
-      }
-      if (r.kind === 'parts') {
-        t.starts = r.starts;
-        const parts = partsInOrder(t);
-        if (parts.length < 3 || parts.some(x => !x)) errors.push(`${at}: частей меньше трёх или пустая`);
-      }
-      tasks[r.id] = t;
+  const tasks: Task[] = [];
+  const byId = new Map<string, Rec>();
+  for (const r of recs) {
+    const at = r.file ?? r.id;
+    const folder = FOLDERS[r.kind];
+    if (!folder) {
+      errors.push(`${at}: неизвестный вид ${r.kind}`);
+      continue;
     }
+    const expect = `content/${folder.dir}/${r.id.split('-').pop()}.yaml`;
+    if (!r.id.startsWith(`${folder.prefix}-`) || expect !== r.file) errors.push(`${at}: id ${r.id} не совпадает с путём`);
+    if (byId.has(r.id)) errors.push(`${at}: повтор id`);
+    byId.set(r.id, r);
+    if (!Number.isInteger(r.version) || r.version < (released[r.id] ?? 1)) errors.push(`${at}: version меньше выпущенной`);
+    if (r.review !== 'draft' && r.review !== 'checked') errors.push(`${at}: review — draft или checked`);
+    const s = r.source;
+    if (!s || !s.work || !s.edition || !(s.section || s.page || r.page) || !s.url || !s.basis) errors.push(`${at}: источник без раздела/страницы, основания или url`);
+    else if (s.basis !== 'общественное достояние') errors.push(`${at}: основание «${s.basis}» — только общественное достояние (другое — решением владельца)`);
+    if (!r.about || r.about.trim().length === 0 || r.about.length > 280) errors.push(`${at}: about пуст или длиннее 280 знаков`);
+    for (const k of r.notebooks ?? []) if (!keys.has(k)) errors.push(`${at}: нет тетради ${k}`);
+    if (r.text && stop.some(w => words(r.text!).some(x => x.toLowerCase() === w))) errors.push(`${at}: слово из стоп-листа`);
+    // запись, сделанная скриптом, держит текст источника буква в букву
+    if (r.proverb) {
+      const p = pool.byId.get(r.proverb);
+      if (!p) errors.push(`${at}: нет пословицы ${r.proverb} в скачанном источнике`);
+      else if (p.text !== r.text) errors.push(`${at}: текст разошёлся с источником (${r.proverb})`);
+    }
+    if (opts.release && r.review !== 'checked') continue;
+    const t = toTask(r, errors);
+    if (t) tasks.push(t);
   }
 
+  const inPack = new Set(tasks.map(t => t.id));
   const notebooks: Notebook[] = books.map(b => ({
-    id: b.id,
+    key: b.key,
     title: b.title,
-    about: b.about,
-    tasks: Object.keys(tasks).filter(id => id.startsWith(`t.${b.id}.`)).sort((a, c) => Number(a.split('.')[2]) - Number(c.split('.')[2])),
+    blurb: b.blurb,
+    free: yes(b.free),
+    tasks: recs.filter(r => r.notebooks?.includes(b.key) && inPack.has(r.id)).map(r => r.id),
   }));
-  for (const b of notebooks) if (!b.tasks.length) errors.push(`тетрадь ${b.id}: нет задач`);
 
-  const days = cal.days ?? [];
-  try {
-    dayNumber(cal.from);
-  } catch (e) {
-    errors.push(`календарь: ${(e as Error).message}`);
+  const calendar: Calendar = { from: raw.from ?? '', days: {} };
+  for (const [date, id] of Object.entries(raw.days ?? {})) {
+    const r = byId.get(id);
+    if (!r) errors.push(`календарь, ${date}: нет записи ${id}`);
+    else if (!yes(r.daily)) errors.push(`календарь, ${date}: ${id} без daily: yes`);
+    else if (r.notebooks?.length) errors.push(`календарь, ${date}: ${id} стоит в тетради — задача дня не входит в тетради`);
+    else if (opts.release && r.review !== 'checked') errors.push(`календарь, ${date}: ${id} не checked`);
+    if (inPack.has(id)) calendar.days[date] = id;
   }
-  days.forEach((d, i) => {
-    if (d.length !== 5) errors.push(`календарь, день ${i + 1}: задач не пять`);
-    for (const id of d) if (!tasks[id]) errors.push(`календарь, день ${i + 1}: нет задачи ${id}`);
-  });
-  const inDays = new Set(days.flat());
-  for (const id of Object.keys(tasks)) if (id.startsWith('d.') && !inDays.has(id)) errors.push(`задача ${id} — не в календаре`);
+  if (opts.release) {
+    const dates = Object.keys(calendar.days).sort();
+    const last = dates[dates.length - 1];
+    const today = opts.today ?? new Date().toISOString().slice(0, 10);
+    if (!last || dayNumber(last) - dayNumber(today) < 365) errors.push(`календарь: запас меньше 365 дней (последний день — ${last ?? 'нет'})`);
+  }
 
+  const count = (k: string) => tasks.filter(t => t.kind === k).length;
+  const draft = recs.filter(r => r.review === 'draft').length;
+  const plan = ['proverb', 'riddle', 'old-word', 'extra-letter', 'parts', 'proverb', 'riddle'];
+  const offPlan = Object.entries(calendar.days).filter(([d, id]) => byId.get(id)?.kind !== plan[weekday(d)]).length;
   const report = [
+    `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}`,
+    `тетради: ${notebooks.map(b => `${b.key} ${b.tasks.length}`).join(', ')}`,
+    `календарь: ${Object.keys(calendar.days).length} дней с ${calendar.from || '—'}; не по виду дня недели: ${offPlan}`,
     `пословиц в источнике: ${pool.byId.size}, разрешено: ${pool.allowed.length}`,
-    `задач: ${Object.keys(tasks).length} (черновиков ${draft}); тетрадей ${notebooks.length}; дней ${days.length} с ${cal.from}`,
   ];
-  return { bundle: { tasks, notebooks, calendar: { from: cal.from, days }, source: src, draft }, errors, report };
+  const pack: Pack = { tasks, notebooks, calendar, released, draft };
+  return { pack, errors, report };
 }
 
 if (import.meta.main) {
-  const { bundle, errors, report } = build();
+  const release = process.argv.includes('--release');
+  const { pack, errors, report } = build(ROOT, { release });
+  console.log(report.join('\n'));
   if (errors.length) {
-    console.error(errors.join('\n'));
+    console.error(errors.slice(0, 50).join('\n') + (errors.length > 50 ? `\n… ещё ${errors.length - 50}` : ''));
     process.exit(1);
   }
-  const out = join(ROOT, 'src', 'content', 'generated');
-  mkdirSync(out, { recursive: true });
-  writeFileSync(
-    join(out, 'bundle.ts'),
-    `// Сделано tools/content/build.ts из content/ — не править руками.\nimport type { Bundle } from '../types';\n\nexport const BUNDLE: Bundle = ${JSON.stringify(bundle)};\n`,
-  );
-  console.log(report.join('\n'));
+  if (!process.argv.includes('--check')) {
+    const out = join(ROOT, 'src', 'content', 'generated');
+    mkdirSync(out, { recursive: true });
+    // строкой: литерал на полторы тысячи задач TypeScript не выводит («union type that is too complex»)
+    writeFileSync(join(out, 'pack.ts'), `// Сделано tools/content/build.ts из content/ — не править руками.\nimport type { Pack } from '../types';\n\nexport const PACK: Pack = JSON.parse(${JSON.stringify(JSON.stringify(pack))});\n`);
+    mkdirSync(join(ROOT, 'dist'), { recursive: true });
+    writeFileSync(join(ROOT, 'dist', 'report.md'), `# Отчёт сборки контента\n\n${report.map(l => `- ${l}`).join('\n')}\n`);
+  }
 }

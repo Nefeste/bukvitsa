@@ -1,0 +1,19 @@
+id: extra-letter-0056
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Толк — бестолочь
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Толк_—_Бестолочь
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.tolk-bestoloch.251.1
+about: Из раздела «Толк — бестолочь». У Даля рядом — «Перекрестись да выспись!».
+text: Челом, а неведомо о чем.
+word: 1
+letter: м
+position: 2

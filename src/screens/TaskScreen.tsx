@@ -1,79 +1,73 @@
-// Экран задачи: вопрос сверху, ответ — в нижней половине экрана, под большой палец
-// (docs/08-game-design.md, «Одной рукой»). После решения — пословица целиком и откуда она.
+// Экран «Задача» (08-game-design.md, «Пять видов задач», «Подсказки», «Откуда это»): условие крупно,
+// поле ответа, ряд букв / варианты / строка / части, три подсказки по порядку. Решил — «Верно» и
+// карточка «Откуда это» с «Ещё» и «На главную».
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
-  endingChoices,
-  endingSplit,
-  extraText,
-  extraWords,
-  gapAnswer,
-  gapErase,
-  gapTap,
-  gapTiles,
-  endingPick,
-  extraPick,
-  partsInOrder,
-  partsPick,
-  partsShuffled,
-  showAnswer,
+  choose,
+  hint,
+  nextHint,
+  openWord,
+  pickPart,
+  place,
   startPlay,
-  tokens,
+  tapLetter,
+  unpickPart,
+  unplace,
   usedTiles,
-  takeHint,
   type Play,
   type Task,
 } from '../engine';
-import { task as taskById } from '../content';
-import { T } from '../i18n';
-import { resultOf } from '../state/progress';
-import { flowTasks, type Flow, type Game } from '../state/game';
+import { content, task as taskById } from '../content';
+import { T, howSolved, shareText } from '../i18n';
+import { nextOpen, resultOf } from '../state/progress';
+import { shareOrCopy } from '../state/share';
+import type { Flow, Game } from '../state/game';
 import { Button, Card, Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
 import { C, R, S } from '../ui/theme';
 
 export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: string }) {
   const task = taskById(id);
-  const ids = flowTasks(flow);
-  const n = ids.indexOf(id);
   const [play, setPlay] = useState<Play>(() => startPlay(task, resultOf(game.results, id)));
-  const { record, results } = game;
-  // итог пишется один раз — когда задача решена впервые
+  const { record, results, setScreen } = game;
+  // итог пишется, когда задача решена или подсмотрена; решённая заново подсмотренная — тоже
   useEffect(() => {
-    if (play.result.done && !results[id]?.done) record(id, play.result);
+    const prev = results[id];
+    if (play.result.done && (!prev?.done || (prev.peeked && !play.result.peeked))) record(id, play.result);
   }, [play.result, id, record, results]);
-  const view = play;
-
-  const next = ids[n + 1];
-  const goNext = () => {
-    if (next) game.setScreen({ name: 'task', flow, id: next });
-    else if (flow.from === 'day') game.setScreen({ name: 'day', date: flow.date });
-    else game.setScreen({ name: 'notebook', id: flow.id });
+  const h = nextHint(task, play);
+  const hintLabel = (n: number) => (n === 2 && task.kind === 'parts' ? T.task.hintPart : n === 1 && task.kind === 'extra-letter' ? T.task.hintWord : T.task.hint[n]);
+  const back = () => setScreen(flow.from === 'daily' ? { name: 'home' } : { name: 'notebook', key: flow.key });
+  const more = () => {
+    if (flow.from !== 'notebook') return;
+    const ids = content.notebooks.find(b => b.key === flow.key)?.tasks ?? [];
+    const next = nextOpen({ ...results, [id]: play.result }, ids, id);
+    setScreen(next ? { name: 'task', flow, id: next } : { name: 'notebook', key: flow.key });
   };
-  const back = () => (flow.from === 'day' ? game.setScreen({ name: 'home' }) : game.setScreen({ name: 'notebook', id: flow.id }));
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.top}>
         <Header title={T.kind[task.kind].name} onBack={back} back={T.task.back} />
-        <Txt dim testID="task-of">{T.task.of(n + 1, ids.length)}</Txt>
-        <Question task={task} play={view} />
-        {view.result.done ? <Solved task={task} play={view} /> : <Txt dim>{T.kind[task.kind].ask}</Txt>}
+        {play.result.done ? <Source task={task} play={play} flow={flow} /> : <Question task={task} play={play} setPlay={setPlay} />}
       </ScrollView>
       <View style={styles.bottom}>
-        {view.result.done ? (
-          <Button testID="next" label={next ? T.task.next : T.task.finish} onPress={goNext} />
+        {play.result.done ? (
+          <View style={styles.row}>
+            {flow.from === 'notebook' ? (
+              <View style={{ flex: 1 }}>
+                <Button testID="more" label={T.task.more} onPress={more} />
+              </View>
+            ) : null}
+            <View style={{ flex: 1 }}>
+              <Button testID="home" kind={flow.from === 'notebook' ? 'ghost' : 'primary'} label={T.task.home} onPress={() => setScreen({ name: 'home' })} />
+            </View>
+          </View>
         ) : (
           <>
-            <Answer task={task} play={view} setPlay={setPlay} />
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Button testID="hint" kind="ghost" label={T.task.hint} onPress={() => setPlay(p => takeHint(task, p))} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button testID="show" kind="ghost" label={T.task.show} onPress={() => setPlay(p => showAnswer(task, p))} />
-              </View>
-            </View>
+            <Answer task={task} play={play} setPlay={setPlay} />
+            {h != null ? <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => setPlay(p => hint(task, p))} /> : null}
           </>
         )}
       </View>
@@ -81,145 +75,155 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
   );
 }
 
-/** Пословица с местом для ответа. */
-function Question({ task, play }: { task: Task; play: Play }) {
-  if (task.kind === 'gap') {
-    const tiles = gapTiles(task);
-    const hidden = task.word;
+function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
+  if (task.kind === 'extra-letter') {
+    // найти в строке: слова плашками; раскрытое слово — по буквам
     return (
-      <Txt style={styles.proverb} testID="question">
-        {tokens(task.text).map((t, i) =>
-          t.word && t.n === hidden ? (
-            <Text key={i} style={styles.blank}>
-              {play.result.done ? gapAnswer(task) : play.slots.map(s => (s == null ? '_' : tiles[s].toLowerCase())).join(' ')}
-            </Text>
-          ) : (
-            t.text
-          ),
-        )}
-      </Txt>
-    );
-  }
-  if (task.kind === 'ending') {
-    const { head } = endingSplit(task);
-    return (
-      <Txt style={styles.proverb} testID="question">
-        {play.result.done ? task.text : `${head} …`}
-      </Txt>
+      <View style={{ gap: 12 }}>
+        <Txt dim>{T.kind[task.kind].ask}</Txt>
+        <View style={styles.wrapRow} testID="question">
+          {(task.words ?? []).map((w, i) => (
+            <Pressable
+              key={i}
+              testID={`word-${i}`}
+              accessibilityRole="button"
+              accessibilityLabel={T.task.word(w)}
+              onPress={() => setPlay(p => openWord(p, i))}
+              style={[styles.word, play.open === i && styles.wordOpen, play.marked === i && styles.wordMarked]}>
+              <Text style={styles.wordText}>{w}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {play.open != null ? (
+          <View style={[styles.wrapRow, play.shake && styles.shake]}>
+            {[...(task.words?.[play.open] ?? '')].map((c, k) => {
+              const miss = play.missed.includes(`${play.open}:${k}`);
+              return (
+                <Pressable key={k} testID={`letter-${k}`} accessibilityRole="button" accessibilityLabel={T.task.letter(c)} disabled={miss} onPress={() => setPlay(p => tapLetter(task, p, k))} style={[styles.tile, miss && styles.tileUsed]}>
+                  <Text style={[styles.tileText, miss && { color: C.inkSoft }]}>{c}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </View>
     );
   }
   if (task.kind === 'parts') {
-    const parts = partsInOrder(task);
+    const parts = task.parts ?? [];
     return (
-      <Txt style={styles.proverb} testID="question">
-        {play.chosen.length ? play.chosen.map(i => parts[i]).join(' ') : '…'}
-      </Txt>
+      <View style={{ gap: 10 }}>
+        <Txt dim>{T.kind[task.kind].ask}</Txt>
+        <View style={[styles.answerBox, play.shake && styles.shake]} testID="question">
+          {play.chosen.length ? (
+            play.chosen.map((c, k) => (
+              <Pressable key={k} testID={`placed-${k}`} accessibilityRole="button" onPress={() => setPlay(p => unpickPart(p, k))}>
+                <Text style={[styles.proverbText, k < play.fixed && { color: C.spruce }]}>{parts[c]}</Text>
+              </Pressable>
+            ))
+          ) : (
+            <Text style={styles.proverbText}>…</Text>
+          )}
+        </View>
+      </View>
     );
   }
-  if (play.result.done) return <Txt style={styles.proverb} testID="question">{task.text}</Txt>;
-  return <ExtraWords task={task} play={play} />;
+  return (
+    <View style={{ gap: 10 }}>
+      <Txt style={styles.proverbText} testID="question">
+        {task.prompt}
+      </Txt>
+      <Txt dim>{play.first ? T.task.first(play.first) : T.kind[task.kind].ask}</Txt>
+    </View>
+  );
 }
 
-function ExtraWords({ task, play }: { task: Task; play: Play }) {
-  return <Txt style={styles.proverb} testID="question">{extraText(task).map((t, i) => (t.word ? <Text key={i} style={play.dimmed.includes(String(t.n)) ? styles.dimWord : undefined}>{t.text}</Text> : t.text))}</Txt>;
-}
-
-/** Нижняя половина: плитки, варианты, части или слова. */
+/** Нижняя половина экрана — под большой палец. */
 function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
-  if (task.kind === 'gap') {
-    const tiles = gapTiles(task);
+  if (task.kind === 'proverb' || task.kind === 'riddle') {
+    const row = task.row ?? [];
     const used = usedTiles(play);
     return (
       <View style={{ gap: 12 }}>
-        <View style={styles.slots}>
+        <View style={[styles.wrapRow, play.shake && styles.shake]}>
           {play.slots.map((s, i) => (
             <Pressable
               key={i}
               testID={`slot-${i}`}
               accessibilityRole="button"
-              accessibilityLabel={T.task.slot(i + 1, s == null ? null : tiles[s])}
-              onPress={() => setPlay(p => gapErase(p, i))}
-              style={[styles.slot, play.locked[i] && styles.slotLocked, play.wrong && !play.locked[i] && styles.slotWrong]}>
-              <Text style={styles.tileText}>{s == null ? '' : tiles[s]}</Text>
+              accessibilityLabel={T.task.slot(i + 1, s == null ? null : row[s].toUpperCase())}
+              onPress={() => setPlay(p => unplace(p, i))}
+              style={[styles.slot, play.locked[i] && styles.slotLocked]}>
+              <Text style={styles.tileText}>{s == null ? '' : row[s].toUpperCase()}</Text>
             </Pressable>
           ))}
         </View>
-        <View style={styles.tiles}>
-          {tiles.map((c, i) => (
-            <Pressable
-              key={i}
-              testID={`tile-${i}`}
-              accessibilityRole="button"
-              accessibilityLabel={T.task.tile(c)}
-              disabled={used.has(i)}
-              onPress={() => setPlay(p => gapTap(task, p, i))}
-              style={({ pressed }) => [styles.tile, used.has(i) && styles.tileUsed, pressed && styles.pressed]}>
-              <Text style={styles.tileText}>{used.has(i) ? '' : c}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.wrapRow}>
+          {row.map((c, i) => {
+            const off = used.has(i) || play.hidden.includes(i);
+            return (
+              <Pressable key={i} testID={`tile-${i}`} accessibilityRole="button" accessibilityLabel={T.task.tile(c.toUpperCase())} disabled={off} onPress={() => setPlay(p => place(task, p, i))} style={({ pressed }) => [styles.tile, off && styles.tileUsed, pressed && styles.pressed]}>
+                <Text style={styles.tileText}>{off ? '' : c.toUpperCase()}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
     );
   }
-  if (task.kind === 'ending') {
+  if (task.kind === 'old-word') {
     return (
       <View style={{ gap: 8 }}>
-        {endingChoices(task).map((c, i) => (
-          <Pressable
-            key={i}
-            testID={`choice-${i}`}
-            accessibilityRole="button"
-            disabled={play.dimmed.includes(c)}
-            onPress={() => setPlay(p => endingPick(task, p, c))}
-            style={({ pressed }) => [styles.choice, play.dimmed.includes(c) && styles.choiceDim, pressed && styles.pressed]}>
-            <Text style={[styles.choiceText, play.dimmed.includes(c) && styles.dimWord]}>… {c}</Text>
-          </Pressable>
-        ))}
+        {(task.options ?? []).map((o, i) => {
+          const off = play.dimmed.includes(i);
+          return (
+            <Pressable key={i} testID={`option-${i}`} accessibilityRole="button" disabled={off} onPress={() => setPlay(p => choose(task, p, i))} style={({ pressed }) => [styles.choice, off && styles.choiceOff, pressed && styles.pressed]}>
+              <Text style={[styles.choiceText, off && styles.off]}>{o}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     );
   }
   if (task.kind === 'parts') {
-    const parts = partsInOrder(task);
+    const parts = task.parts ?? [];
     return (
       <View style={{ gap: 8 }}>
-        {partsShuffled(task).map(i =>
+        {parts.map((t, i) =>
           play.chosen.includes(i) ? null : (
-            <Pressable key={i} testID={`part-${i}`} accessibilityRole="button" onPress={() => setPlay(p => partsPick(task, p, i))} style={({ pressed }) => [styles.choice, play.wrong && styles.choiceShake, pressed && styles.pressed]}>
-              <Text style={styles.choiceText}>{parts[i]}</Text>
+            <Pressable key={i} testID={`part-${i}`} accessibilityRole="button" onPress={() => setPlay(p => pickPart(task, p, i))} style={({ pressed }) => [styles.choice, pressed && styles.pressed]}>
+              <Text style={styles.choiceText}>{t}</Text>
             </Pressable>
           ),
         )}
       </View>
     );
   }
-  const ws = extraWords(task);
-  return (
-    <View style={styles.tiles}>
-      {ws.map((w, i) => (
-        <Pressable
-          key={i}
-          testID={`word-${i}`}
-          accessibilityRole="button"
-          disabled={play.dimmed.includes(String(i))}
-          onPress={() => setPlay(p => extraPick(task, p, i))}
-          style={({ pressed }) => [styles.word, play.dimmed.includes(String(i)) && styles.choiceDim, pressed && styles.pressed]}>
-          <Text style={[styles.choiceText, play.dimmed.includes(String(i)) && styles.dimWord]}>{w}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
+  return null;
 }
 
-/** После решения: верно или ответ, сколько подсказок и ошибок, откуда пословица. */
-function Solved({ task, play }: { task: Task; play: Play }) {
+/** «Откуда это»: «Верно» или «Подсмотрена», полный текст, источник, строка о значении. */
+function Source({ task, play, flow }: { task: Task; play: Play; flow: Flow }) {
   const r = play.result;
+  const [copied, setCopied] = useState(false);
   return (
-    <Card testID="solved">
-      <Txt style={{ fontWeight: '600', color: r.shown ? C.inkSoft : C.spruce }}>{r.shown ? T.task.shown : T.task.right}</Txt>
-      {task.kind === 'extra' ? <Txt dim>{`${extraWords(task)[task.word ?? 0]} → ${tokens(task.text).find(t => t.word && t.n === task.word)?.text ?? ''}`}</Txt> : null}
-      <Txt dim>{`${T.task.hints(r.hints)}, ${T.task.mistakes(r.mistakes)}`}</Txt>
-      <Txt dim testID="source">{T.task.from(task.section)}</Txt>
-    </Card>
+    <View style={{ gap: 12 }}>
+      <Txt style={{ fontWeight: '600', color: r.peeked ? C.inkSoft : C.spruce }} testID="verdict">
+        {r.peeked ? T.task.peeked : T.task.right}
+      </Txt>
+      <Card testID="source">
+        <Txt dim>{T.task.from}</Txt>
+        <Txt style={styles.proverbText}>{task.kind === 'riddle' ? `${task.text} — ${task.answer}` : task.text}</Txt>
+        <Txt dim>{task.source}</Txt>
+        <Txt>{task.about}</Txt>
+      </Card>
+      {flow.from === 'daily' ? (
+        <>
+          <Txt dim>{howSolved(r)}</Txt>
+          <Button testID="share" kind="ghost" label={copied ? T.home.copied : T.home.share} onPress={() => void shareOrCopy(shareText(flow.date, task.kind, r)).then(setCopied)} />
+        </>
+      ) : null}
+    </View>
   );
 }
 
@@ -228,21 +232,23 @@ const styles = StyleSheet.create({
   top: { padding: 16, gap: 12 },
   bottom: { padding: 16, gap: 12, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.linen },
   row: { flexDirection: 'row', gap: 10 },
-  proverb: { fontSize: S.lead, lineHeight: 32, fontFamily: FONTS.body },
-  blank: { color: C.kumach, fontFamily: FONTS.bold, letterSpacing: 2 },
-  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
-  slot: { width: 40, height: 48, borderRadius: R.tile, backgroundColor: C.cell, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.cell },
+  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  proverbText: { fontSize: 22, lineHeight: 32, fontFamily: FONTS.body, color: C.ink },
+  answerBox: { minHeight: 64, gap: 4, padding: 12, borderRadius: R.card, borderWidth: 1, borderColor: C.line, backgroundColor: C.paper },
+  slot: { width: 48, height: 52, borderRadius: R.tile, backgroundColor: C.cell, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.cell },
   slotLocked: { borderColor: C.spruce, backgroundColor: C.paper },
-  slotWrong: { borderColor: C.kumach },
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
-  tile: { width: 42, height: 50, borderRadius: R.tile, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
+  tile: { width: 48, height: 52, borderRadius: R.tile, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
   tileUsed: { backgroundColor: C.cell, borderColor: C.cell },
   tileText: { fontSize: 24, color: C.ink, fontFamily: FONTS.title },
-  choice: { borderRadius: R.button, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, paddingVertical: 12, paddingHorizontal: 14 },
-  choiceDim: { backgroundColor: C.cell, borderColor: C.cell },
-  choiceShake: { borderColor: C.line },
-  choiceText: { fontSize: S.body, color: C.ink, fontFamily: FONTS.body, lineHeight: 24 },
+  /** неверная проверка: рамка кумачом вокруг поля — отклик на касание игрока, без движения */
+  shake: { borderWidth: 2, borderColor: C.kumach, borderRadius: R.card, padding: 4 },
   word: { borderRadius: R.button, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, paddingVertical: 10, paddingHorizontal: 12 },
-  dimWord: { color: C.inkSoft, textDecorationLine: 'line-through' },
+  wordOpen: { borderColor: C.ink },
+  wordMarked: { borderColor: C.spruce, borderWidth: 2 },
+  wordText: { fontSize: S.body, color: C.ink, fontFamily: FONTS.body },
+  choice: { borderRadius: R.button, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, paddingVertical: 12, paddingHorizontal: 14 },
+  choiceOff: { backgroundColor: C.cell, borderColor: C.cell },
+  choiceText: { fontSize: S.body, color: C.ink, fontFamily: FONTS.body, lineHeight: 24 },
+  off: { color: C.inkSoft, textDecorationLine: 'line-through' },
   pressed: { opacity: 0.8 },
 });

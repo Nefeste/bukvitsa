@@ -1,0 +1,19 @@
+id: extra-letter-0104
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Осторожность
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Осторожность
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.ostorozhnost.158.1
+about: Из раздела «Осторожность». У Даля рядом — «Можно бы про это песню спеть, да чтоб кого по уху не задеть».
+text: Его и днем с огнем оглядеть.
+word: 5
+letter: к
+position: 5

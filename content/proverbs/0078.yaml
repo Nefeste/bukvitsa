@@ -1,0 +1,19 @@
+id: proverb-0078
+version: 1
+kind: proverb
+review: draft
+daily: no
+notebooks:
+  - winter
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Месяцеслов
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.mesyaceslov.774.2
+about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
+text: Матвея зима потеет.
+answer: зима
+gap: 2

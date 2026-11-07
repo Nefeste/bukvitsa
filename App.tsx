@@ -1,4 +1,4 @@
-// Корень: экраны переключаются состоянием, без роутера — их восемь и они простые (как в «Наготове»).
+// Корень: экраны переключаются состоянием, без роутера (ADR 0004).
 import React, { useEffect } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -8,9 +8,7 @@ import { FONT_FILES } from './src/ui/fonts';
 import { useGame } from './src/state/game';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TaskScreen } from './src/screens/TaskScreen';
-import { DayScreen } from './src/screens/DayScreen';
 import { ArchiveScreen } from './src/screens/ArchiveScreen';
-import { NotebooksScreen } from './src/screens/NotebooksScreen';
 import { NotebookScreen } from './src/screens/NotebookScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { AboutScreen } from './src/screens/AboutScreen';
@@ -21,12 +19,11 @@ export default function App() {
   // шрифты студии лежат в сборке — грузятся мгновенно; не загрузились — игра идёт системным шрифтом
   const [fontsReady, fontsError] = useFonts(FONT_FILES);
   const { screen, setScreen } = game;
-  // «Назад» на телефоне: из задачи — к её дню или тетради, отовсюду — на первый экран; с первого — выход
+  // «Назад» на телефоне: из задачи тетради — к тетради, отовсюду — на главную; с главной — выход
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen.name === 'home') return false;
-      if (screen.name === 'task' && screen.flow.from === 'notebook') setScreen({ name: 'notebook', id: screen.flow.id });
-      else if (screen.name === 'notebook') setScreen({ name: 'notebooks' });
+      if (screen.name === 'task' && screen.flow.from === 'notebook') setScreen({ name: 'notebook', key: screen.flow.key });
       else setScreen({ name: 'home' });
       return true;
     });
@@ -42,10 +39,8 @@ export default function App() {
             <>
               {screen.name === 'home' ? <HomeScreen game={game} /> : null}
               {screen.name === 'task' ? <TaskScreen key={screen.id} game={game} flow={screen.flow} id={screen.id} /> : null}
-              {screen.name === 'day' ? <DayScreen game={game} date={screen.date} /> : null}
               {screen.name === 'archive' ? <ArchiveScreen game={game} /> : null}
-              {screen.name === 'notebooks' ? <NotebooksScreen game={game} /> : null}
-              {screen.name === 'notebook' ? <NotebookScreen game={game} id={screen.id} /> : null}
+              {screen.name === 'notebook' ? <NotebookScreen game={game} book={screen.key} /> : null}
               {screen.name === 'settings' ? <SettingsScreen game={game} /> : null}
               {screen.name === 'about' ? <AboutScreen game={game} /> : null}
             </>

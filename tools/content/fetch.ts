@@ -47,7 +47,7 @@ export function fromRendered(html: string, section: string): string {
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n)))
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, '&');
-  // заголовок — как у разделов с текстом; что строки собраны со страниц скана, видно по `sources.yaml`
+  // заголовок — как у разделов с текстом; что строки собраны со страниц скана, сказано в docs/09-content.md, §9
   const out = [`== ${section} ==`];
   for (let l of text.split('\n')) {
     l = l.trim().replace(/^\[?\s*\d+\s*\]?$/, '').replace(/^\d+\.\s*/, '').trim();

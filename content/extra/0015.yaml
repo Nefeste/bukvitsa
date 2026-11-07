@@ -1,0 +1,20 @@
+id: extra-letter-0015
+version: 1
+kind: extra-letter
+review: draft
+daily: no
+notebooks:
+  - labor
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Работа — праздность
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Работа_—_Праздность
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.rabota-prazdnost.8.1
+about: Из раздела «Работа — праздность». У Даля рядом — «Плохо жить без забот, худо без доброго слова».
+text: Моты мотать — дни коротать (т. е. от безделья}.
+word: 2
+letter: е
+position: 6

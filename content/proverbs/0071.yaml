@@ -1,0 +1,19 @@
+id: proverb-0071
+version: 1
+kind: proverb
+review: draft
+daily: no
+notebooks:
+  - word
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Молва — слава
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Молва_—_Слава
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.molva-slava.183.1
+about: Из раздела «Молва — слава». У Даля рядом — «Слухом земля полнится».
+text: Меньше дрязгу, так меньше звяги.
+answer: меньше
+gap: 4

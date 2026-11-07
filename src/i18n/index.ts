@@ -1,21 +1,11 @@
 // Все тексты интерфейса (устав, docs/05-rules.md: строки для игрока — только здесь и в content/).
-// Экраны читают `T.раздел.ключ` в момент отрисовки. Тексты пословиц — из источника, не отсюда.
-// В 0.x — только русский; английский — когда решим про выход за пределы России (docs/07-roadmap.md).
-import { cleanCount, marksLine } from '../engine/day';
+// Только русский (ADR 0006). Экраны читают `T.раздел.ключ` в момент отрисовки.
 import type { Kind, Result } from '../engine/types';
 
 const nb = ' ';
 
-const plural = (n: number, one: string, few: string, many: string) => {
-  const a = Math.abs(n) % 100,
-    b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b === 1) return one;
-  if (b >= 2 && b <= 4) return few;
-  return many;
-};
-
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
 /** «2026-11-12» → «12 ноября». */
 export function humanDate(date: string): string {
@@ -23,70 +13,74 @@ export function humanDate(date: string): string {
   return `${d}${nb}${MONTHS[m - 1]}`;
 }
 
-/** Итог дня текстом — им делятся в мессенджере. Без ответов: строка кружков. */
-export function shareText(date: string, results: readonly (Result | undefined)[]): string {
-  return [`Буквица · ${humanDate(date)}`, `${marksLine(results)}  ${cleanCount(results)} из ${results.length} без подсказок`, 'gornitsa.games/bukvitsa'].join('\n');
+/** «2026-11» → «Ноябрь 2026». */
+export function monthName(ym: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
 }
 
-const KIND: Record<Kind, { name: string; ask: string }> = {
-  gap: { name: 'Пропущенное слово', ask: 'Соберите слово из букв' },
-  ending: { name: 'Конец пословицы', ask: 'Как кончается пословица?' },
-  parts: { name: 'Пословица по частям', ask: 'Сложите части по порядку' },
-  extra: { name: 'Лишняя буква', ask: 'В каком слове лишняя буква?' },
+const KIND: Record<Kind, { name: string; lower: string; ask: string }> = {
+  proverb: { name: 'Пословица', lower: 'пословица', ask: 'Какого слова не хватает?' },
+  riddle: { name: 'Загадка', lower: 'загадка', ask: 'Отгадайте' },
+  'extra-letter': { name: 'Лишняя буква', lower: 'лишняя буква', ask: 'В одном слове лишняя буква. Нажмите на слово, потом на букву' },
+  'old-word': { name: 'Старое слово', lower: 'старое слово', ask: 'Какое слово так толкует Даль?' },
+  parts: { name: 'По частям', lower: 'по частям', ask: 'Расставьте части по порядку' },
 };
 
+const ORDINAL = ['первой', 'второй', 'третьей', 'четвёртой', 'пятой'];
+
+/** Как решена задача — одной строкой (08-game-design.md, «Задача дня»). */
+export function howSolved(r: Result): string {
+  if (r.peeked) return 'Подсмотрена';
+  if (r.hints > 0) return 'Решена с подсказкой';
+  if (r.tries <= 1) return 'Решена с первой попытки, без подсказок ✓';
+  const n = ORDINAL[r.tries - 1] ?? `${r.tries}-й`;
+  return `Решена ${r.tries === 2 ? 'со' : 'с'} ${n} попытки`;
+}
+
+/** Текст «Поделиться» без условия и ответа — чтобы не портить день другу. */
+export function shareText(date: string, kind: Kind, r: Result): string {
+  return [`Буквица · ${humanDate(date)} · ${KIND[kind].lower}`, howSolved(r), 'gornitsa.games/bukvitsa'].join('\n');
+}
+
 export const T = {
-  app: { name: 'Буквица', initial: 'Б', tagline: 'Пословицы Даля — по задаче в минуту' },
+  app: { name: 'Буквица', initial: 'Б', tagline: 'Пословицы, загадки и старые слова по Далю' },
   home: {
-    today: (date: string) => `Задачи дня · ${date}`,
-    todayAbout: 'Пять задач, одни на всех',
-    start: 'Решать',
-    resume: 'Продолжить',
-    done: 'Готово',
+    daily: (date: string, kind: Kind) => `Задача дня · ${humanDate(date)} · ${KIND[kind].lower}`,
+    solve: 'Решать',
     share: 'Поделиться',
+    copied: 'Скопировано',
+    beyond: 'Новые задачи дня — в новой версии игры',
     notebooks: 'Тетради',
-    notebooksAbout: 'Задачи по темам — сколько хочется',
-    archive: 'Прошлые дни',
+    progress: (done: number, total: number, peeked: number) => `${done} из ${total}${peeked ? ` · ${peeked} подсмотрены` : ''}`,
+    later: 'В следующих версиях',
+    archive: 'Архив',
     settings: 'Настройки',
     about: 'Об игре',
   },
   kind: KIND,
   task: {
-    of: (n: number, total: number) => `Задача ${n} из ${total}`,
-    hint: 'Подсказка',
-    show: 'Показать ответ',
-    erase: 'Стереть',
-    right: 'Верно',
-    shown: 'Ответ',
-    next: 'Дальше',
-    finish: 'К итогу',
     back: 'Назад',
-    from: (section: string) => `Даль, «Пословицы русского народа», раздел «${section}»`,
-    note: (n: string) => `У Даля в скобках: ${n}`,
-    hints: (n: number) => (n ? `подсказок: ${n}` : 'без подсказок'),
-    mistakes: (n: number) => (n ? `${n}${nb}${plural(n, 'ошибка', 'ошибки', 'ошибок')}` : 'без ошибок'),
+    hint: { 1: 'Убрать лишние', 2: 'Открыть букву', 3: 'Показать ответ' } as Record<number, string>,
+    hintPart: 'Открыть часть',
+    hintWord: 'Подсветить слово',
+    first: (c: string) => `Начинается на «${c}»`,
+    right: 'Верно',
+    peeked: 'Подсмотрена',
+    from: 'Откуда это',
+    more: 'Ещё',
+    home: 'На главную',
     tile: (c: string) => `Буква ${c}`,
     slot: (n: number, c: string | null) => (c ? `Место ${n}: ${c}, убрать` : `Место ${n}: пусто`),
+    word: (w: string) => `Слово «${w}»`,
+    letter: (c: string) => `Буква ${c}`,
   },
-  day: {
-    title: (date: string) => `Итог · ${date}`,
-    clean: (n: number, total: number) => `${n} из ${total} — без подсказок и ошибок`,
-    legend: 'Закрашен — сами, наполовину — с подсказкой или ошибкой, пустой — ответ открыт',
-    share: 'Поделиться',
-    home: 'В начало',
-    tomorrow: 'Новые задачи — завтра. Прошлые дни ждут в архиве.',
-  },
-  archive: { title: 'Прошлые дни', today: 'сегодня', none: 'Пока не решали' },
-  notebook: {
-    title: 'Тетради',
-    progress: (done: number, total: number) => `${done} из ${total}`,
-    open: 'Открыть',
-    complete: 'Тетрадь решена',
-  },
+  archive: { title: 'Архив', none: 'Прошлых задач дня пока нет — архив начнётся завтра', solved: 'решена', peeked: 'подсмотрена', open: 'не решена' },
+  notebook: { done: 'Решена', solved: 'решена', peeked: 'подсмотрена', open: 'не тронута', item: (n: number) => `Задача ${n}` },
   settings: {
     title: 'Настройки',
     motion: 'Меньше движения',
-    motionAbout: 'Плитки и окна появляются сразу, без плавных переходов',
+    motionAbout: 'Без встряхивания и плавных переходов',
     system: 'Как в телефоне',
     on: 'Включено',
     off: 'Выключено',
@@ -94,10 +88,12 @@ export const T = {
   about: {
     title: 'Об игре',
     version: (v: string, b: number) => `Версия ${v} (${b})`,
-    source: (author: string, title: string, year: number) => `Пословицы — из книги: ${author}, «${title}», ${year}. Текст — по Викитеке.`,
-    draft: (n: number) => `Задач на проверке человеком: ${n}. Нашли ошибку в пословице — напишите нам.`,
+    sources:
+      'Тексты — из книг общественного достояния: В. И. Даль, «Пословицы русского народа» (1862, 2-е изд. 1879) и «Толковый словарь живого великорусского языка» (2-е изд., 1880–1882). Текст — по Викитеке.',
+    draft: (n: number) => `Задач, ещё не сверенных со сканом: ${n}. Нашли ошибку — напишите нам.`,
     studio: 'Игра студии «Горница» — gornitsa.games',
     support: 'support@gornitsa.games',
+    fonts: 'Шрифты Kurale и Onest — SIL Open Font License',
     noNet: 'Игра работает без интернета и ничего о вас не собирает.',
   },
 };

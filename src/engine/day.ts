@@ -1,8 +1,5 @@
-// Задачи дня — одни на всех без сервера: день выбирает дата телефона, а набор задач на каждый
-// день записан в календаре сборки (content/calendar.yaml). Дата приходит строкой «ГГГГ-ММ-ДД»;
-// здесь нет Date — только целая арифметика календаря (алгоритм days_from_civil).
-import { markOf } from './tasks';
-import type { Mark, Result } from './types';
+// Задача дня — из календаря «дата → id», собранного при сборке (ADR 0002); сервера нет. Дата —
+// строка «ГГГГ-ММ-ДД» по часам телефона; здесь нет Date — только целая арифметика (days_from_civil).
 
 /** «2026-11-12» → номер дня от 1970-01-01. Неверная строка — исключение. */
 export function dayNumber(date: string): number {
@@ -34,45 +31,28 @@ export function dateOf(day: number): string {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+/** День недели: 0 — понедельник … 6 — воскресенье (1970-01-01 — четверг). */
+export function weekday(date: string): number {
+  return (((dayNumber(date) + 3) % 7) + 7) % 7;
+}
+
 export interface Calendar {
-  /** первый день календаря, «ГГГГ-ММ-ДД» */
+  /** первый день календаря */
   from: string;
-  /** задачи каждого дня по порядку, начиная с `from` */
-  days: string[][];
+  /** 'ГГГГ-ММ-ДД' → id задачи */
+  days: Record<string, string>;
 }
 
-/**
- * Какой по счёту день календаря у даты. До начала — 0 (первый день). После конца календарь идёт
- * по кругу: вернее, чем пустой экран, а сборка следит, чтобы запас дней был (06-testing.md).
- */
-export function calendarIndex(cal: Calendar, date: string): number {
-  const i = dayNumber(date) - dayNumber(cal.from);
-  if (i <= 0) return 0;
-  return i % cal.days.length;
+/** Задача дня; за концом календаря или до начала — `undefined`. */
+export function daily(cal: Calendar, today: string): string | undefined {
+  return cal.days[today];
 }
 
-/** Задачи дня по дате. */
-export function dailyTasks(cal: Calendar, date: string): string[] {
-  return cal.days[calendarIndex(cal, date)] ?? [];
-}
-
-/** Дни архива — от начала календаря до сегодня, новые первыми. Пропущенный день ждёт. */
-export function archiveDates(cal: Calendar, today: string): string[] {
-  const from = dayNumber(cal.from);
-  const to = dayNumber(today);
-  const out: string[] = [];
-  for (let d = to; d >= from; d--) out.push(dateOf(d));
-  return out;
-}
-
-const GLYPH: Record<Mark, string> = { clean: '●', helped: '◐', shown: '○' };
-
-/** Строка кружков итога: по одному на задачу; нерешённая — «·». Слова вокруг — в src/i18n. */
-export function marksLine(results: readonly (Result | undefined)[]): string {
-  return results.map(r => (r && r.done ? GLYPH[markOf(r)] : '·')).join('');
-}
-
-/** Сколько задач решено без подсказок и ошибок. */
-export function cleanCount(results: readonly (Result | undefined)[]): number {
-  return results.filter(r => r && r.done && markOf(r) === 'clean').length;
+/** Прошлые задачи дня — от начала календаря до вчера, новые первыми. Будущих дней нет. */
+export function archive(cal: Calendar, today: string): string[] {
+  const t = dayNumber(today);
+  return Object.keys(cal.days)
+    .filter(d => dayNumber(d) < t && dayNumber(d) >= dayNumber(cal.from))
+    .sort()
+    .reverse();
 }

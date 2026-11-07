@@ -1,22 +1,22 @@
-// Подбор задач из пословиц Даля: тетради (content/notebooks.yaml) и задачи дня (content/calendar.yaml).
-// Детерминированно: порядок — по хешу идентификатора пословицы, без случайности. Пишет записи
-// задач в content/tasks/*.yaml со статусом `review: draft` — проверяет их человек (docs/09-content.md).
+// Черновики записей задач из скачанного Даля (docs/09-content.md, §8 и «Что изменилось»).
+// Скрипт делает то, что §8 поручает ассистенту, по тем же правилам и детерминированно: берёт
+// пословицы разрешённых разделов (§2 — sections.yaml, banned.yaml, stoplist.txt), выбирает слово для
+// пропуска, лишнюю букву, части, отгадку и пишет записи в формате §3 со статусом `review: draft`.
+// `review: checked` ставит человек после сверки со сканом.
 //
-// Номера вечные (устав, «Код»): уже записанные задачи и дни календаря не меняются, новые
-// дописываются в конец. `bun tools/content/pick.ts` — добрать до целей; `--fresh` — только пока
-// ничего не выпущено, переписать всё заново.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+// Номера вечные: существующие записи не трогаются, новые получают следующие номера.
+//   bun tools/content/pick.ts          — добрать тетради и пул задач дня до целей (PLAN)
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse, stringify } from 'yaml';
+import { parse } from 'yaml';
 import { fnv1a } from '../../src/engine/core/hash';
-import { dateOf, dayNumber } from '../../src/engine/day';
-import { words } from '../../src/engine/tasks';
-import type { Kind } from '../../src/engine/types';
-import { commonness, loadPool, type Pool } from './pool';
-import type { Proverb } from './dal';
+import { words } from '../../src/engine/words';
+import { mainReading, type Proverb } from './dal';
+import { bannedWord, commonness, loadPool, norm, type Pool } from './pool';
+import { idOf, nextNumber, readRecords, writeRecord, type Kind, type Rec, type Source } from './records';
 
 const ROOT = join(import.meta.dir, '..', '..');
-const C = (p: string) => join(ROOT, 'content', p);
+const BOOK = 'Пословицы русского народа (Даль)';
 
 /** Служебные слова: их не прячем и не портим — задача про смысл, а не про предлог. */
 export const STOP = new Set(
@@ -24,280 +24,268 @@ export const STOP = new Set(
     'его ее её их он она оно они мы вы ты я мне меня мной тебе тебя тобой себе себя нас вас нам вам им ему ей ' +
     'свой своя свое своё свои это этот эта эти тот та те кто где когда коли если вот уж все всё весь вся ' +
     'чем чего чему кому кого нет есть был была было были будет быть сам сама само сами тут там здесь ' +
-    'еще ещё уже лишь только хоть хотя или либо ни-ни ин иной иная иное нами вами ими ней ним нем нею ею ' +
+    'еще ещё уже лишь только хоть хотя или либо ин иной иная иное нами вами ими ней ним нем нею ею ' +
     'после перед через около возле ну эх ой ах аж вон эка экой этак таков такой такая такое такие какой ' +
     'какая какое какие который которая которое всякий всякая всякое всякому всех всем всего всею ' +
     'чтоб чтобы будто словно авось пусть пускай очень более менее самый самая самое').split(' '),
 );
 
-export interface Rec {
-  id: string;
-  kind: Kind;
-  level: 1 | 2 | 3;
-  proverb: string;
-  word?: number;
-  cut?: number;
-  wrong?: string[];
-  starts?: number[];
-  at?: number;
-  letter?: string;
-  review: 'draft' | 'checked';
-}
+let FREQ = new Map<string, number>();
+const freqOf = (w: string) => FREQ.get(norm(w)) ?? 0;
 
-const order = (p: Proverb, salt: string) => fnv1a(`${salt}:${p.id}`);
-/** Одинаковые пословицы у Даля бывают в разных разделах — в игре каждая один раз. */
-const textKey = (p: Proverb) => words(p.text).join(' ').toLowerCase().replace(/ё/g, 'е');
-
-function contentWords(p: Proverb): number[] {
-  const ws = words(p.text);
+function contentWords(text: string): number[] {
+  const ws = words(text);
   return ws
     .map((w, i) => ({ w, i }))
     .filter(({ w, i }) => !STOP.has(w.toLowerCase()) && !w.includes('-') && !(i > 0 && /^[А-ЯЁ]/.test(w)))
     .map(({ i }) => i);
 }
 
-let FREQ = new Map<string, number>();
-const freqOf = (w: string) => FREQ.get(w.toLowerCase().replace(/ё/g, 'е')) ?? 0;
-
-/**
- * gap: прячем самое обиходное знаменательное слово 4–9 букв (его можно угадать по смыслу), не первое,
- * если есть другие. Уровень — по длине и частоте слова в сборнике.
- */
-export function gapOf(p: Proverb): Pick<Rec, 'word' | 'level'> | null {
-  const ws = words(p.text);
-  if (ws.length < 3 || ws.length > 12) return null;
-  let cand = contentWords(p).filter(i => ws[i].length >= 4 && ws[i].length <= 9);
+/** Пословица с пропуском: самое обиходное знаменательное слово 4–9 букв, не первое, если есть другие. */
+export function gapOf(text: string): number | null {
+  const ws = words(text);
+  if (ws.length < 3 || ws.length > 10) return null;
+  let cand = contentWords(text).filter(i => ws[i].length >= 4 && ws[i].length <= 9);
   if (cand.length > 1) cand = cand.filter(i => i > 0);
   if (!cand.length) return null;
-  const i = cand.reduce((a, b) => (freqOf(ws[b]) > freqOf(ws[a]) || (freqOf(ws[b]) === freqOf(ws[a]) && b > a) ? b : a));
-  const n = ws[i].length;
-  const f = freqOf(ws[i]);
-  const level = n <= 5 && f >= 20 ? 1 : n <= 7 && f >= 5 ? 2 : 3;
-  return { word: i, level };
+  return cand.reduce((a, b) => (freqOf(ws[b]) > freqOf(ws[a]) || (freqOf(ws[b]) === freqOf(ws[a]) && b > a) ? b : a));
 }
 
-/** ending: пословица с тире; конец — после тире, 2–6 слов, начало — от 2 слов. */
-export function endingCut(p: Proverb): number | null {
-  if ((p.text.match(/ — /g) ?? []).length !== 1) return null;
-  const [head, tail] = p.text.split(' — ');
-  const h = words(head).length;
-  const t = words(tail).length;
-  // конец со строчной буквы: прописная выдала бы, что это начало другой пословицы
-  if (h < 2 || t < 2 || t > 6 || !/^[а-яё]/.test(tail)) return null;
-  return h;
-}
-
-/** parts: 6–12 слов; части — по знакам препинания, иначе поровну. Уровень — число частей. */
-export function partsOf(p: Proverb, level: 1 | 2 | 3): number[] | null {
-  const ws = words(p.text);
-  if (ws.length < 6 || ws.length > 12) return null;
-  const n = level + 2;
-  if (ws.length < n * 2) return null;
-  // граница — после слова со знаком: «, — : ;»
+/** По частям: 6–12 слов, 3–4 части, границы — только по знакам препинания. */
+export function partsOf(text: string, n: 3 | 4): string[] | null {
+  const ws = words(text);
+  if (ws.length < 6 || ws.length > 12 || ws.length < n * 2) return null;
   const marks: number[] = [];
   let k = -1;
-  for (const m of p.text.matchAll(/[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)*([,;:]| —)?/g)) {
+  for (const m of text.matchAll(/[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)*([,;:]| —)?/g)) {
     k++;
     if (m[1] && k + 1 < ws.length) marks.push(k + 1);
   }
-  // части режутся только по знакам препинания — иначе кусок «Птицу по» не похож на часть пословицы;
-  // из подходящих границ берутся ближайшие к равным долям
   if (marks.length < n - 1) return null;
   const starts = [0];
   const step = ws.length / n;
   for (let j = 1; j < n; j++) {
-    const ideal = step * j;
     const left = marks.filter(x => x > starts[starts.length - 1] + 1 && ws.length - x >= n - j);
     if (!left.length) return null;
+    const ideal = step * j;
     starts.push(left.reduce((a, b) => (Math.abs(b - ideal) < Math.abs(a - ideal) ? b : a)));
   }
-  return starts;
+  // части — куски исходного текста между началами слов
+  const at: number[] = [];
+  let w = -1;
+  for (const m of text.matchAll(/[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)*/g)) {
+    w++;
+    if (starts.includes(w)) at.push(m.index ?? 0);
+  }
+  const parts = at.map((p, i) => text.slice(p, i + 1 < at.length ? at[i + 1] : text.length).trim());
+  return parts.join(' ') === text.replace(/\s+/g, ' ').trim() ? parts : null;
 }
 
 const COMMON = 'оеаинтсрвлкмдпу';
 
-/** extra: слово 4–8 букв, буква внутрь, не рядом с такой же. Уровень — по числу слов. */
-export function extraOf(p: Proverb): Pick<Rec, 'word' | 'at' | 'letter' | 'level'> | null {
-  const ws = words(p.text);
+/** Лишняя буква: слово 4–8 букв, буква — частая строчная внутрь слова, не рядом с такой же. */
+export function extraOf(id: string, text: string): { word: number; position: number; letter: string } | null {
+  const ws = words(text);
   if (ws.length < 4 || ws.length > 10) return null;
-  const cand = contentWords(p).filter(i => ws[i].length >= 4 && ws[i].length <= 8);
+  const cand = contentWords(text).filter(i => ws[i].length >= 4 && ws[i].length <= 8);
   if (!cand.length) return null;
-  const h = fnv1a(`extra:${p.id}`);
+  const h = fnv1a(`extra:${id}`);
   const i = cand[h % cand.length];
   const w = ws[i].toLowerCase();
-  const at = 1 + ((h >>> 8) % (w.length - 1));
-  let letter = '';
+  const at = 1 + ((h >>> 8) % (w.length - 1)); // вставка перед буквой at (с нуля): не первой и не после последней
   for (let j = 0; j < COMMON.length; j++) {
     const c = COMMON[((h >>> 16) + j) % COMMON.length];
-    if (c !== w[at - 1] && c !== w[at]) {
-      letter = c;
-      break;
-    }
-  }
-  if (!letter) return null;
-  return { word: i, at, letter, level: ws.length <= 5 ? 1 : ws.length <= 8 ? 2 : 3 };
-}
-
-/** Чужие концы для ending: того же размера ±1 слово, из других пословиц. Запись — `id@cut`. */
-function wrongFor(p: Proverb, cut: number, endings: { p: Proverb; cut: number }[]): string[] | null {
-  const tailLen = words(p.text).length - cut;
-  const tail = p.text.split(' — ')[1];
-  const pool = endings
-    .filter(e => e.p.id !== p.id && Math.abs(words(e.p.text).length - e.cut - tailLen) <= 1 && e.p.text.split(' — ')[1] !== tail)
-    .sort((a, b) => fnv1a(`wrong:${p.id}:${a.p.id}`) - fnv1a(`wrong:${p.id}:${b.p.id}`));
-  const out: string[] = [];
-  const seen = new Set<string>([tail]);
-  for (const e of pool) {
-    const t = e.p.text.split(' — ')[1];
-    if (seen.has(t)) continue;
-    seen.add(t);
-    out.push(`${e.p.id}@${e.cut}`);
-    if (out.length === 3) return out;
+    if (c !== w[at - 1] && c !== w[at]) return { word: i + 1, position: at + 1, letter: c };
   }
   return null;
 }
 
-/** Сделать задачу вида `kind` из пословицы; `null` — пословица не подходит. */
-export function makeTask(id: string, kind: Kind, p: Proverb, endings: { p: Proverb; cut: number }[], want?: 1 | 2 | 3): Rec | null {
-  if (kind === 'gap') {
-    const g = gapOf(p);
-    if (!g || (want && g.level !== want)) return null;
-    return { id, kind, level: g.level!, proverb: p.id, word: g.word, review: 'draft' };
-  }
-  if (kind === 'ending') {
-    const cut = endingCut(p);
-    if (cut == null) return null;
-    const wrong = wrongFor(p, cut, endings);
-    if (!wrong) return null;
-    return { id, kind, level: words(p.text).length - cut <= 3 ? 1 : 2, proverb: p.id, cut, wrong, review: 'draft' };
-  }
-  if (kind === 'parts') {
-    const level = want ?? 1;
-    const starts = partsOf(p, level);
-    if (!starts) return null;
-    return { id, kind, level, proverb: p.id, starts, review: 'draft' };
-  }
-  const e = extraOf(p);
-  if (!e || (want && e.level !== want)) return null;
-  return { id, kind, level: e.level!, proverb: p.id, word: e.word, at: e.at, letter: e.letter, review: 'draft' };
-}
+/** Отгадки, которых не берём (§2: оружие, война, смерть). */
+const RIDDLE_NO = ['ружь', 'ружей', 'пул', 'выстрел', 'заряд', 'пушк', 'сабл', 'смерт', 'гроб', 'нож', 'топор', 'кнут', 'бич'];
 
-interface NotebookDef {
+interface Riddle {
   id: string;
-  title: string;
-  sections: string[];
-  /** слова, хотя бы одно из которых должно быть в пословице (основы) */
+  text: string;
+  answer: string;
+  note: string;
+}
+
+/** Загадки из раздела «Загадки»: отгадка — слово в скобках; «то же» — отгадка предыдущей строки. */
+export function riddlesOf(pool: Pool, stems: string[]): Riddle[] {
+  const out: Riddle[] = [];
+  let prev = '';
+  for (const p of pool.byId.values()) {
+    if (p.title !== 'Загадки') continue;
+    // строка разбилась на несколько пословиц — у загадки так не бывает, такую строку не берём
+    if (mainReading(p.original).text !== p.text) continue;
+    let a = p.note.trim().toLowerCase().replace(/[.!]$/, '');
+    if (/^(то же|он же|она же|оно же|те же)\b/.test(a)) a = prev;
+    else prev = /^[а-яё]+$/.test(a) ? a : '';
+    if (!/^[а-яё]{3,12}$/.test(a)) continue;
+    if (RIDDLE_NO.some(s => a.startsWith(s))) continue;
+    if (bannedWord(p.text, stems) || bannedWord(a, stems)) continue;
+    if (words(p.text).some(w => norm(w) === norm(a))) continue; // отгадка не должна стоять в самой загадке
+    out.push({ id: p.id, text: p.text, answer: a, note: p.note });
+  }
+  return out;
+}
+
+const urlOf = (title: string) => `https://ru.wikisource.org/wiki/${`${BOOK}/${title}`.replace(/ /g, '_')}`;
+
+function sourceOf(p: Proverb): Source {
+  return {
+    work: 'Даль. Пословицы русского народа',
+    edition: '2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)',
+    section: p.section,
+    basis: 'общественное достояние',
+    url: urlOf(p.title),
+    checked_against: 'текст Викитеки 08.11.2026, не сверено со сканом',
+  };
+}
+
+/** «Откуда это» только из источника: раздел, скобки Даля, соседняя пословица (09-content.md, §6). */
+export function aboutOf(p: Proverb, neighbour: string | undefined): string {
+  let s = `Из раздела «${p.section}».`;
+  if (p.note) s += ` У Даля в скобках: ${p.note.replace(/\.$/, '')}.`;
+  if (neighbour && s.length + neighbour.length + 20 <= 280) s += ` У Даля рядом — «${neighbour.replace(/[.]$/, '')}».`;
+  return s.slice(0, 280);
+}
+
+/** Цели — docs/08-game-design.md, «Тетради» и «Задача дня»; состав тетрадей — content/notebooks.yaml. */
+const PLAN = {
+  /** тетрадь: сколько задач и каких видов */
+  notebook: 40,
+  firstMix: { proverb: 9, riddle: 8, 'extra-letter': 11, parts: 11 } as Record<string, number>,
+  bookMix: ['proverb', 'extra-letter', 'parts', 'proverb'] as Kind[],
+  /** пул задач дня на три года (1096 дней): пословицы — и на дни без загадок и старых слов */
+  daily: { proverb: 800, 'extra-letter': 160, parts: 160 } as Record<string, number>,
+};
+
+interface Book {
+  key: string;
+  sections?: string[];
   words?: string[];
-  size: number;
 }
-
-/** Вид и уровень задачи по её месту в тетради: виды по кругу, к концу — труднее. */
-export function slotOf(n: number, size: number): { kind: Kind; want?: 1 | 2 | 3 } {
-  const kinds: Kind[] = ['gap', 'ending', 'parts', 'extra'];
-  const kind = kinds[n % 4];
-  const want = (n < size / 3 ? 1 : n < (2 * size) / 3 ? 2 : 3) as 1 | 2 | 3;
-  return { kind, want: kind === 'ending' ? undefined : kind === 'parts' ? (Math.min(want, 2) as 1 | 2) : want };
-}
-
-/** Набор задач дня: лёгкое слово, конец, части, лишняя буква, слово потруднее. */
-export const DAY_SLOTS: { kind: Kind; want?: 1 | 2 | 3 }[] = [
-  { kind: 'gap', want: 1 },
-  { kind: 'ending' },
-  { kind: 'parts', want: 1 },
-  { kind: 'extra' },
-  { kind: 'gap', want: 2 },
-];
-
-function readRecs(file: string): Rec[] {
-  return existsSync(file) ? ((parse(readFileSync(file, 'utf8')) as Rec[] | null) ?? []) : [];
-}
-
-const HEADER = (what: string) =>
-  `# ${what}. Сделано tools/content/pick.ts, проверяет человек: \`review: checked\` ставит только он.\n` +
-  '# Номера вечные: запись не удаляется и не перенумеровывается (docs/09-content.md).\n';
 
 function main() {
-  const fresh = process.argv.includes('--fresh');
-  const pool: Pool = loadPool(ROOT);
+  const pool = loadPool(ROOT);
   FREQ = pool.freq;
-  const all = pool.allowed;
-  // знакомость пословицы — грубыми ступенями, внутри ступени порядок по хешу (не по алфавиту)
-  const tier = new Map(all.map(p => [p.id, Math.floor(commonness(p.text, pool.freq))]));
-  const endings = all.map(p => ({ p, cut: endingCut(p) })).filter((e): e is { p: Proverb; cut: number } => e.cut != null);
-  const used = new Set<string>();
-  const books = (parse(readFileSync(C('notebooks.yaml'), 'utf8')) as { notebooks: NotebookDef[] }).notebooks;
-
-  // уже записанные задачи держат свои пословицы
-  const existing = new Map<string, Rec[]>();
-  for (const b of books) existing.set(b.id, fresh ? [] : readRecs(C(`tasks/${b.id}.yaml`)));
-  existing.set('daily', fresh ? [] : readRecs(C('tasks/daily.yaml')));
-  const usedText = new Set<string>();
+  const stems = [
+    ...(parse(readFileSync(join(ROOT, 'content', 'banned.yaml'), 'utf8')) as { stems: string[] }).stems,
+    ...readFileSync(join(ROOT, 'content', 'stoplist.txt'), 'utf8').split('\n').map(s => s.trim()).filter(s => s && !s.startsWith('#')),
+  ];
+  const books = parse(readFileSync(join(ROOT, 'content', 'notebooks.yaml'), 'utf8')) as Book[];
+  const existing = readRecords(ROOT);
+  const usedText = new Set(existing.map(r => (r.text ? words(r.text).map(norm).join(' ') : '')).filter(Boolean));
+  const usedProverb = new Set(existing.map(r => r.proverb).filter(Boolean) as string[]);
+  const textKey = (t: string) => words(t).map(norm).join(' ');
+  const free = (p: Proverb) => !usedProverb.has(p.id) && !usedText.has(textKey(p.text));
   const take = (p: Proverb) => {
-    used.add(p.id);
-    usedText.add(textKey(p));
+    usedProverb.add(p.id);
+    usedText.add(textKey(p.text));
   };
-  const free = (p: Proverb) => !used.has(p.id) && !usedText.has(textKey(p));
-  for (const recs of existing.values()) for (const r of recs) take(pool.byId.get(r.proverb)!);
+  const counter = new Map<Kind, number>();
+  const nextId = (k: Kind) => {
+    const n = counter.get(k) ?? nextNumber(ROOT, k);
+    counter.set(k, n + 1);
+    return idOf(k, n);
+  };
+  const bySection = new Map<string, Proverb[]>();
+  for (const p of pool.allowed) bySection.set(p.title, [...(bySection.get(p.title) ?? []), p]);
+  const neighbour = (p: Proverb) => bySection.get(p.title)?.find(q => q.id !== p.id && q.text.length <= 90 && !q.text.includes(p.text));
 
+  /** Запись вида `kind` из пословицы или `null`, если пословица не подходит. */
+  const make = (kind: Kind, p: Proverb, daily: boolean, notebooks: string[]): Rec | null => {
+    const base = (id: string) => ({ id, version: 1, kind, review: 'draft' as const, daily: daily ? ('yes' as const) : ('no' as const), notebooks, source: sourceOf(p), proverb: p.id, about: aboutOf(p, neighbour(p)?.text) });
+    if (kind === 'proverb') {
+      const g = gapOf(p.text);
+      if (g == null) return null;
+      return { ...base(nextId(kind)), text: p.text, answer: words(p.text)[g].toLowerCase(), gap: g + 1 };
+    }
+    if (kind === 'extra-letter') {
+      const id = nextId(kind);
+      const e = extraOf(id, p.text);
+      if (!e) {
+        counter.set(kind, counter.get(kind)! - 1);
+        return null;
+      }
+      return { ...base(id), text: p.text, word: e.word, letter: e.letter, position: e.position };
+    }
+    if (kind === 'parts') {
+      const parts = partsOf(p.text, (fnv1a(p.id) % 2 === 0 ? 3 : 4) as 3 | 4) ?? partsOf(p.text, 3);
+      if (!parts) return null;
+      return { ...base(nextId(kind)), text: p.text, parts };
+    }
+    return null;
+  };
+  /** Пробная проверка без расхода номера. */
+  const fits = (kind: Kind, p: Proverb) =>
+    kind === 'proverb' ? gapOf(p.text) != null : kind === 'parts' ? (partsOf(p.text, 3) ?? partsOf(p.text, 4)) != null : extraOf('probe', p.text) != null;
+
+  const hashOrder = (salt: string) => (a: Proverb, b: Proverb) => fnv1a(`${salt}:${a.id}`) - fnv1a(`${salt}:${b.id}`);
+  const inBook = (key: string) => existing.filter(r => r.notebooks?.includes(key)).length;
+  const made: Rec[] = [];
+  const emit = (r: Rec | null) => {
+    if (!r) return false;
+    made.push(r);
+    writeRecord(ROOT, r);
+    return true;
+  };
+
+  // загадки: сперва в первую тетрадь, остальные — в пул задач дня
+  const riddles = riddlesOf(pool, stems).filter(r => !usedProverb.has(r.id));
+  let firstRiddles = existing.filter(r => r.kind === 'riddle' && r.notebooks?.includes('first')).length;
+  for (const rd of riddles) {
+    const p = pool.byId.get(rd.id)!;
+    const toFirst = firstRiddles < PLAN.firstMix.riddle;
+    if (toFirst) firstRiddles++;
+    emit({
+      id: nextId('riddle'), version: 1, kind: 'riddle', review: 'draft', daily: toFirst ? 'no' : 'yes', notebooks: toFirst ? ['first'] : [],
+      source: { ...sourceOf(p), section: 'Загадки' }, proverb: p.id, text: p.text, answer: rd.answer,
+      about: `Загадка из раздела «Загадки» сборника Даля. Отгадка у Даля — «${rd.note.replace(/\.$/, '')}».`,
+    });
+    take(p);
+  }
+
+  // тетради
   for (const b of books) {
-    const recs = existing.get(b.id)!;
-    const stems = (b.words ?? []).map(s => s.toLowerCase());
-    const cand = all
-      .filter(p => b.sections.includes(p.title))
-      .filter(p => !stems.length || words(p.text).some(w => stems.some(s => w.toLowerCase().replace(/ё/g, 'е').startsWith(s))))
-      .sort((a, c) => order(a, b.id) - order(c, b.id));
-    while (recs.length < b.size) {
-      const n = recs.length;
-      const slot = slotOf(n, b.size);
-      // нужного вида не нашлось — другой вид, чтобы тетрадь была полной
-      const kinds: Kind[] = [slot.kind, ...(['gap', 'extra', 'ending', 'parts'] as Kind[]).filter(k => k !== slot.kind)];
-      let made: Rec | null = null;
-      for (const kind of kinds) {
-        const want = kind === slot.kind ? slot.want : undefined;
-        const p = cand.find(x => free(x) && makeTask('', kind, x, endings, want));
-        if (!p) continue;
-        made = makeTask(`t.${b.id}.${n + 1}`, kind, p, endings, want)!;
+    if (b.key.startsWith('riddles-') || b.key === 'things' || b.key === 'people') continue; // загадки и старые слова — руками (§8)
+    const stemsB = (b.words ?? []).map(s => s.toLowerCase());
+    const cand = pool.allowed
+      .filter(p => !b.sections || b.sections.includes(p.title))
+      .filter(p => !stemsB.length || words(p.text).some(w => stemsB.some(s => norm(w).startsWith(s))))
+      .sort(hashOrder(b.key));
+    let n = inBook(b.key);
+    let turn = 0;
+    const mix = b.key === 'first' ? (['proverb', 'extra-letter', 'parts'] as Kind[]) : PLAN.bookMix;
+    while (n < PLAN.notebook) {
+      const kind = mix[turn++ % mix.length];
+      const p = cand.find(x => free(x) && fits(kind, x));
+      if (!p) break;
+      if (emit(make(kind, p, false, [b.key]))) {
         take(p);
-        break;
+        n++;
       }
-      if (!made) {
-        console.error(`тетрадь ${b.id}: не хватило пословиц на задачу ${n + 1}`);
-        break;
-      }
-      recs.push(made);
+      if (turn > 4000) break;
     }
-    writeFileSync(C(`tasks/${b.id}.yaml`), HEADER(`Тетрадь «${b.title}»`) + stringify(recs, { lineWidth: 0 }));
   }
 
-  // задачи дня: из всех разрешённых разделов, кроме взятого тетрадями; зимой — зимние пословицы
-  const cal = parse(readFileSync(C('calendar.yaml'), 'utf8')) as { from: string; size: number; winter: { from: string; to: string; words: string[] }; days?: string[][] };
-  const days = fresh ? [] : (cal.days ?? []);
-  const daily = existing.get('daily')!;
-  const winterStems = cal.winter.words.map(s => s.toLowerCase());
-  const isWinter = (p: Proverb) => words(p.text).some(w => winterStems.some(s => w.toLowerCase().replace(/ё/g, 'е').startsWith(s)));
-  // задачи дня — сперва самые обиходные пословицы: день — для всех, и первый — для новичка
-  const sorted = all.slice().sort((a, c) => tier.get(c.id)! - tier.get(a.id)! || order(a, 'daily') - order(c, 'daily'));
-  const w0 = dayNumber(cal.winter.from) - dayNumber(cal.from);
-  const w1 = dayNumber(cal.winter.to) - dayNumber(cal.from);
-  while (days.length < cal.size) {
-    const d = days.length;
-    const winter = d >= w0 && d <= w1;
-    const ids: string[] = [];
-    for (const slot of DAY_SLOTS) {
-      const pick = (pref: boolean) => sorted.find(x => free(x) && (!pref || isWinter(x)) && makeTask('', slot.kind, x, endings, slot.want));
-      const p = (winter ? pick(true) : undefined) ?? pick(false);
-      if (!p) throw new Error(`день ${dateOf(dayNumber(cal.from) + d)}: не хватило пословиц (${slot.kind})`);
-      const rec = makeTask(`d.${daily.length + 1}`, slot.kind, p, endings, slot.want)!;
-      daily.push(rec);
-      take(p);
-      ids.push(rec.id);
+  // пул задач дня — сперва самые обиходные пословицы, внутри ступени — по хешу
+  const tier = (p: Proverb) => Math.floor(commonness(p.text, pool.freq));
+  const sorted = pool.allowed.slice().sort((a, c) => tier(c) - tier(a) || hashOrder('daily')(a, c));
+  for (const kind of ['proverb', 'extra-letter', 'parts'] as Kind[]) {
+    let have = existing.filter(r => r.kind === kind && (r.daily === 'yes' || r.daily === true)).length + made.filter(r => r.kind === kind && r.daily === 'yes').length;
+    for (const p of sorted) {
+      if (have >= PLAN.daily[kind]) break;
+      if (!free(p) || !fits(kind, p)) continue;
+      if (emit(make(kind, p, true, []))) {
+        take(p);
+        have++;
+      }
     }
-    days.push(ids);
   }
-  writeFileSync(C('tasks/daily.yaml'), HEADER('Задачи дня') + stringify(daily, { lineWidth: 0 }));
-  const head = readFileSync(C('calendar.yaml'), 'utf8').split('\ndays:')[0].trimEnd();
-  writeFileSync(C('calendar.yaml'), `${head}\ndays:\n${days.map(d => `  - [${d.join(', ')}]`).join('\n')}\n`);
-  console.log(`задач: тетради ${books.map(b => `${b.id} ${existing.get(b.id)!.length}`).join(', ')}; дней ${days.length}, задач дня ${daily.length}`);
+  const count = (k: Kind) => made.filter(r => r.kind === k).length;
+  console.log(`новых записей: ${made.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, с лишней буквой ${count('extra-letter')}, по частям ${count('parts')}`);
 }
 
 if (import.meta.main) main();

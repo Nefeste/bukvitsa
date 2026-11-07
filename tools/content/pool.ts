@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
-import { words } from '../../src/engine/tasks';
+import { words } from '../../src/engine/words';
 import { parseSection, type Proverb } from './dal';
 
 export interface Pool {
