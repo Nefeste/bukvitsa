@@ -146,8 +146,14 @@ jobs:
         with:
           file: android/app/build/outputs/apk/release/app-release.apk
           allow-file: .github/apk-permissions.txt
-          forbid: 'INTERNET|NETWORK_STATE|FOREGROUND_SERVICE|INSTALL_REFERRER|WAKE_LOCK'
-          backup: 'off'
+          # Профиль «Буквицы» по решениям владельца 08.11.2026: сеть и AD_ID — реклама Яндекса (bukvitsa#4),
+          # поэтому запретный список студии — без AD_ID, как у «Нард»; INTERNET обязан быть (признак, что список
+          # прочитался); автобэкап обязан быть включён (#15: в копии только база AsyncStorage, ключа устройства
+          # у игры нет). Вырезанное в app.json (фоновая служба, Install Referrer, WAKE_LOCK) — по-прежнему запрещено.
+          deny: 'EXTERNAL_STORAGE|SYSTEM_ALERT_WINDOW|LOCATION|CAMERA|RECORD_AUDIO|CONTACTS|READ_PHONE|CALL_LOG|SMS|MANAGE_|QUERY_ALL_PACKAGES|ACCOUNTS'
+          forbid: 'FOREGROUND_SERVICE|INSTALL_REFERRER|WAKE_LOCK'
+          require: '^android\.permission\.INTERNET$'
+          backup: 'on'
           min-target-sdk: '36'
           max-size-mb: '40'
 
