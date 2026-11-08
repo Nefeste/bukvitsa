@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "events": [
+    { "t": "solved", "id": "proverb-0001", "day": "2026-12-01", "tries": 1, "hints": 0 },
+    { "t": "shared", "id": "proverb-0001", "day": "2026-12-01" },
+    { "t": "peeked", "id": "riddle-0001", "day": "2026-12-02" },
+    { "t": "solved", "id": "riddle-0001", "day": "2026-12-03", "tries": 2, "hints": 1 },
+    { "t": "peeked", "id": "parts-0001", "day": "2026-12-03" }
+  ],
+  "settings": { "lessMotion": true, "adsConsent": "no", "theme": "dark", "bigger": true },
+  "installedOn": "2026-12-01",
+  "counters": { "solved": 2, "peeked": 1, "days": 2 },
+  "rateAsked": true
+}

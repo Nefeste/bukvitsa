@@ -7,9 +7,11 @@ import { T } from '../i18n';
 import { billing, buyPlus, openRuStore, syncRights, useMoney, type Availability } from '../money';
 import type { Game } from '../state/game';
 import { Button, Card, Header, Txt } from '../ui/kit';
-import { C } from '../ui/theme';
+import { themed, useLook } from '../ui/theme';
 
 export function PlusScreen({ game }: { game: Game }) {
+  const styles = useStyles();
+  const look = useLook();
   const money = useMoney();
   const [price, setPrice] = useState<string | null>(null);
   const [avail, setAvail] = useState<Availability | null>(null);
@@ -40,7 +42,7 @@ export function PlusScreen({ game }: { game: Game }) {
       <Header title={T.money.plus} onBack={() => game.setScreen({ name: 'home' })} back={T.task.back} />
       {money.plus ? (
         <Card testID="plus-thanks">
-          <Txt style={{ color: C.spruce }}>{T.money.thanks}</Txt>
+          <Txt style={{ color: look.c.spruce }}>{T.money.thanks}</Txt>
         </Card>
       ) : (
         <Card>
@@ -60,4 +62,6 @@ export function PlusScreen({ game }: { game: Game }) {
   );
 }
 
-const styles = StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: C.linen, flexGrow: 1 } });
+const useStyles = themed((c, z) =>
+  StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 } }),
+);

@@ -77,7 +77,7 @@ bun tools/content/build.ts --check  # checks only; --release — only `checked`,
 bun tools/content/pick.ts           # draft records from the downloaded Dahl text (09-content.md §9); never renumbers
 bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years 3 [--draft]   # append the daily calendar (never edit released dates)
 bun tools/content/fetch.ts          # download missing Dahl sections from Wikisource (own User-Agent, 4 s apart)
-bun tools/content/play.ts           # "virtual player" (planned): ambiguous letter rows, options, parts
+bun tools/content/play.ts           # "virtual player": ambiguous letter rows, extra letters, options, parts → dist/play.md
 npx expo start                      # dev server
 npm run lint                        # zero warnings; no Date.now / new Date / Math.random in src/engine
 npm run typecheck                   # content + tsc (app) + tsc -p tools
@@ -136,9 +136,11 @@ charter's `docs/05-rules.md` and are not repeated here. This project's own rules
   (draft records), `records.ts`, `shuffle.ts` (row and order from `sha256(id:version)`, ADR 0005), `calendar.ts`,
   `build.ts` (checks §5, `pack.ts`, report).
 - `src/engine/` — `types.ts`, `play.ts` (four interactions, three hints, peeked), `day.ts` (calendar without `Date`),
-  `words.ts`, `letters.ts` (the only engine file with Cyrillic).
-- `src/state/` — `game.ts`, `progress.ts` (results until the events schema of 0.2), `settings.ts`, `storage.ts`,
+  `words.ts`, `money.ts`, `rate.ts`, `letters.ts` (the only engine file with Cyrillic).
+- `src/state/` — `game.ts`, `save.ts` + `migrations.ts` (save schema 1: events, settings; fixtures in
+  `tools/test/fixtures/saves/`), `progress.ts` (results derived for screens), `settings.ts`, `storage.ts`, `rate.ts`,
   `today.ts` (`?date=` on web), `share.ts`; `src/screens/` — Home, Task (with «Откуда это»), Notebook, Archive, Settings,
-  About; `src/ui/` — tokens, fonts, kit, `Initial` (the drop-cap); `src/i18n/` — all strings and the share text.
+  About; `src/ui/` — `theme.ts` (light/dark palettes, «ещё крупнее», `themed()` styles), fonts, kit, `Initial` (the
+  drop-cap); `src/i18n/` — all strings and the share text; `modules/rustore-review` — RuStore Review (copy from nardy).
 - `tools/test/`, `tools/e2e/browser.ts`.
 

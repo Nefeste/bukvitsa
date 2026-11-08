@@ -4,9 +4,11 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS } from './fonts';
-import { C, R } from './theme';
+import { R, themed, useLook } from './theme';
 
 export function Initial({ letter, size = 72 }: { letter: string; size?: number }) {
+  const styles = useStyles();
+  const look = useLook();
   const c = size * 0.18;
   return (
     <View style={[styles.box, { width: size, height: size }]} accessible={false}>
@@ -21,7 +23,7 @@ export function Initial({ letter, size = 72 }: { letter: string; size?: number }
           <Path
             key={i}
             d={`M ${x + dx * 4} ${y + dy * (c + 4)} L ${x + dx * 4} ${y + dy * 4} L ${x + dx * (c + 4)} ${y + dy * 4} M ${x + dx * 8} ${y + dy * 8} q ${dx * c * 0.5} 0 ${dx * c * 0.5} ${dy * c * 0.5}`}
-            stroke={C.flax}
+            stroke={look.c.flax}
             strokeWidth={2}
             fill="none"
           />
@@ -32,7 +34,9 @@ export function Initial({ letter, size = 72 }: { letter: string; size?: number }
   );
 }
 
-const styles = StyleSheet.create({
-  box: { backgroundColor: C.paper, borderRadius: R.card, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  letter: { color: C.kumach, fontFamily: FONTS.title },
-});
+const useStyles = themed((c, z) =>
+  StyleSheet.create({
+    box: { backgroundColor: c.paper, borderRadius: R.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    letter: { color: c.kumach, fontFamily: FONTS.title },
+  }),
+);

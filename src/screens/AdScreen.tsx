@@ -7,9 +7,11 @@ import { T } from '../i18n';
 import { showInterstitial } from '../money';
 import type { Game, Screen } from '../state/game';
 import { Txt } from '../ui/kit';
-import { C, S } from '../ui/theme';
+import { S, themed, useLook } from '../ui/theme';
 
 export function AdScreen({ game, next }: { game: Game; next: Screen }) {
+  const styles = useStyles();
+  const look = useLook();
   const { setScreen } = game;
   useEffect(() => {
     const t = setTimeout(() => {
@@ -20,10 +22,12 @@ export function AdScreen({ game, next }: { game: Game; next: Screen }) {
   }, [next, setScreen]);
   return (
     <View style={styles.wrap} testID="ad-note">
-      <Txt title style={{ fontSize: S.lead, lineHeight: 28 }}>{T.money.ad}</Txt>
+      <Txt title style={{ fontSize: look.z(S.lead), lineHeight: look.z(28) }}>{T.money.ad}</Txt>
       <Txt dim>{T.money.adNote}</Txt>
     </View>
   );
 }
 
-const styles = StyleSheet.create({ wrap: { flex: 1, backgroundColor: C.linen, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 } });
+const useStyles = themed((c, z) =>
+  StyleSheet.create({ wrap: { flex: 1, backgroundColor: c.linen, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 } }),
+);

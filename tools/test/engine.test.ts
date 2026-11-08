@@ -1,6 +1,6 @@
 // Движок: слова, календарь без Date, задача дня и архив (specs/2026-10-engine.md, 2026-10-daily.md).
 import { describe, expect, test } from 'bun:test';
-import { archive, daily, dateOf, dayNumber, tokens, weekday, words } from '../../src/engine';
+import { archive, daily, dateOf, dayNumber, RATE_AFTER_NOTEBOOKS, rateDue, tokens, weekday, words } from '../../src/engine';
 
 describe('слова', () => {
   test('слова и промежутки, дефис внутри слова', () => {
@@ -23,5 +23,26 @@ describe('календарь', () => {
     expect(daily(cal, '2026-12-04')).toBeUndefined();
     expect(archive(cal, '2026-12-03')).toEqual(['2026-12-02', '2026-12-01']);
     expect(archive(cal, '2026-12-01')).toEqual([]);
+  });
+});
+
+describe('оценка в RuStore', () => {
+  const books = [
+    { key: 'a', tasks: ['a1', 'a2'] },
+    { key: 'b', tasks: ['b1'] },
+    { key: 'c', tasks: [] },
+    { key: 'd', tasks: ['d1'] },
+  ];
+  const by = (ids: string[]) => (id: string) => ids.includes(id);
+  test('после второй решённой тетради, на её экране, один раз', () => {
+    expect(rateDue(books, by(['a1', 'a2']), 'a', false)).toBe(false);
+    expect(rateDue(books, by(['a1', 'a2', 'b1']), 'b', false)).toBe(true);
+    expect(rateDue(books, by(['a1', 'a2', 'b1']), 'a', false)).toBe(true);
+    expect(rateDue(books, by(['a1', 'a2', 'b1']), 'd', false)).toBe(false);
+    expect(rateDue(books, by(['a1', 'a2', 'b1']), 'b', true)).toBe(false);
+  });
+  test('пустая тетрадь решённой не считается', () => {
+    expect(rateDue(books, by(['b1']), 'b', false)).toBe(false);
+    expect(RATE_AFTER_NOTEBOOKS).toBe(2);
   });
 });

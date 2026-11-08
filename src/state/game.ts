@@ -1,12 +1,13 @@
-// Состояние приложения: какой экран, итоги задач, настройки. Экраны получают его одним объектом.
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo } from 'react-native';
+// Состояние приложения: какой экран, сохранение (события, настройки), вид. Экраны получают его одним объектом.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, useColorScheme } from 'react-native';
 import type { Result } from '../engine';
 import { loadMoney, setPersonalAds, startMoney } from '../money';
 import { setLessMotion } from '../ui/motion';
-import { lessMotionOf, type Settings } from './settings';
-import type { Results } from './progress';
-import { loadResults, loadSettings, saveResults, saveSettings } from './storage';
+import { setLook } from '../ui/theme';
+import { darkOf, lessMotionOf, type Settings } from './settings';
+import { emptySave, eventOfResult, resultsOf, withEvent, type Save } from './save';
+import { loadSave, removeSave, writeSave } from './storage';
 import { todayISO } from './today';
 
 /** Откуда открыта задача: задача дня (с датой) или тетрадь. */
@@ -27,21 +28,22 @@ export type Screen =
 
 export function useGame() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
-  const [results, setResults] = useState<Results>({});
-  const [settings, setSettingsState] = useState<Settings>({});
+  const today = useMemo(() => todayISO(), []);
+  const [save, setSave] = useState<Save>(() => emptySave(today));
   const [systemLess, setSystemLess] = useState(false);
   const [ready, setReady] = useState(false);
-  const today = useMemo(() => todayISO(), []);
+  const writable = useRef(false);
+  const systemDark = useColorScheme() === 'dark';
 
   useEffect(() => {
     let alive = true;
-    Promise.all([loadResults(), loadSettings(), AccessibilityInfo.isReduceMotionEnabled().catch(() => false), loadMoney(today)]).then(([r, s, sys]) => {
+    Promise.all([loadSave(today), AccessibilityInfo.isReduceMotionEnabled().catch(() => false), loadMoney(today)]).then(([loaded, sys]) => {
       if (!alive) return;
-      setResults(r);
-      setSettingsState(s);
+      writable.current = loaded.writable;
+      setSave(loaded.save);
       setSystemLess(sys);
       setReady(true);
-      void startMoney(s.adsConsent === 'yes', today);
+      void startMoney(loaded.save.settings.adsConsent === 'yes', today);
     });
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', v => setSystemLess(v));
     return () => {
@@ -50,27 +52,56 @@ export function useGame() {
     };
   }, [today]);
 
+  const settings = save.settings;
   useEffect(() => {
     setLessMotion(lessMotionOf(settings, systemLess));
-  }, [settings, systemLess]);
+    setLook(darkOf(settings, systemDark), settings.bigger === true);
+  }, [settings, systemLess, systemDark]);
 
-  const record = useCallback((id: string, r: Result) => {
-    setResults(prev => {
-      const next = { ...prev, [id]: r };
-      void saveResults(next);
+  /** Изменить сохранение и записать его; запись не прочиталась при запуске — не писать поверх. */
+  const update = useCallback((f: (s: Save) => Save) => {
+    setSave(prev => {
+      const next = f(prev);
+      if (next !== prev && writable.current) void writeSave(next);
       return next;
     });
   }, []);
 
-  const setSettings = useCallback((s: Settings) => {
-    setSettingsState(prev => {
-      if (s.adsConsent && s.adsConsent !== prev.adsConsent) setPersonalAds(s.adsConsent === 'yes');
-      return s;
-    });
-    void saveSettings(s);
-  }, []);
+  const results = useMemo(() => resultsOf(save.events), [save.events]);
 
-  return { screen, setScreen, results, record, settings, setSettings, systemLess, ready, today };
+  /** Задача решена или подсмотрена — событие в сохранение. */
+  const record = useCallback(
+    (id: string, r: Result) => {
+      const e = eventOfResult(id, r, today);
+      if (e) update(s => withEvent(s, e));
+    },
+    [today, update],
+  );
+
+  /** Игрок поделился итогом задачи дня. */
+  const shared = useCallback((id: string) => update(s => withEvent(s, { t: 'shared', id, day: today })), [today, update]);
+
+  const setSettings = useCallback(
+    (next: Settings) => {
+      update(s => {
+        if (next.adsConsent && next.adsConsent !== s.settings.adsConsent) setPersonalAds(next.adsConsent === 'yes');
+        return { ...s, settings: next };
+      });
+    },
+    [update],
+  );
+
+  /** Форму оценки RuStore показали — больше не просить. */
+  const markRated = useCallback(() => update(s => (s.rateAsked ? s : { ...s, rateAsked: true })), [update]);
+
+  /** «Удалить мои данные»: прогресс и настройки с нуля; день установки и права «Буквицы+» остаются. */
+  const wipe = useCallback(async () => {
+    await removeSave();
+    writable.current = true;
+    update(s => ({ ...emptySave(today), installedOn: s.installedOn }));
+  }, [today, update]);
+
+  return { screen, setScreen, results, record, shared, settings, setSettings, systemLess, systemDark, ready, today, save, markRated, wipe };
 }
 
 export type Game = ReturnType<typeof useGame>;

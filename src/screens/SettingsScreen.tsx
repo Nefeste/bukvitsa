@@ -1,36 +1,125 @@
-// Настройки: «Меньше движения» — как в телефоне, включено или выключено (ADR устава 0023, правило 6).
-import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+// Настройки (08-game-design.md, «Экраны»): тема, «ещё крупнее», «Меньше движения» (ADR устава 0023, правило 6),
+// персональная реклама, «Удалить мои данные» — с подтверждением на самом экране, без системного окна.
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { T } from '../i18n';
 import type { Game } from '../state/game';
+import type { Settings } from '../state/settings';
 import { Button, Card, Header, Txt } from '../ui/kit';
-import { C } from '../ui/theme';
+import { themed } from '../ui/theme';
+
+/** Ряд кнопок «один из»: выбранная — главной кнопкой. */
+function Choice<V>({ id, value, opts, onPick }: { id: string; value: V; opts: { label: string; value: V; key: string }[]; onPick: (v: V) => void }) {
+  return (
+    <>
+      {opts.map(o => (
+        <Button key={o.key} testID={`${id}-${o.key}`} kind={value === o.value ? 'primary' : 'ghost'} label={o.label} onPress={() => onPick(o.value)} />
+      ))}
+    </>
+  );
+}
 
 export function SettingsScreen({ game }: { game: Game }) {
-  const v = game.settings.lessMotion;
-  const opts: { label: string; value: boolean | undefined; id: string }[] = [
-    { label: T.settings.system, value: undefined, id: 'system' },
-    { label: T.settings.on, value: true, id: 'on' },
-    { label: T.settings.off, value: false, id: 'off' },
-  ];
+  const styles = useStyles();
+  const s = game.settings;
+  const set = (patch: Partial<Settings>) => game.setSettings({ ...s, ...patch });
+  const [ask, setAsk] = useState(false);
+  const [wiped, setWiped] = useState(false);
+  const tri = { system: T.settings.system, on: T.settings.on, off: T.settings.off };
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Header title={T.settings.title} onBack={() => game.setScreen({ name: 'home' })} back={T.task.back} />
       <Card>
+        <Txt style={{ fontWeight: '600' }}>{T.settings.theme}</Txt>
+        <Choice<Settings['theme']>
+          id="theme"
+          value={s.theme}
+          onPick={v => set({ theme: v })}
+          opts={[
+            { label: tri.system, value: undefined, key: 'system' },
+            { label: T.settings.light, value: 'light', key: 'light' },
+            { label: T.settings.dark, value: 'dark', key: 'dark' },
+          ]}
+        />
+      </Card>
+      <Card>
+        <Txt style={{ fontWeight: '600' }}>{T.settings.bigger}</Txt>
+        <Txt dim>{T.settings.biggerAbout}</Txt>
+        <Choice
+          id="bigger"
+          value={s.bigger === true}
+          onPick={v => set({ bigger: v })}
+          opts={[
+            { label: tri.on, value: true, key: 'on' },
+            { label: tri.off, value: false, key: 'off' },
+          ]}
+        />
+      </Card>
+      <Card>
         <Txt style={{ fontWeight: '600' }}>{T.settings.motion}</Txt>
         <Txt dim>{T.settings.motionAbout}</Txt>
-        {opts.map(o => (
-          <Button key={o.id} testID={`motion-${o.id}`} kind={v === o.value ? 'primary' : 'ghost'} label={o.label} onPress={() => game.setSettings({ ...game.settings, lessMotion: o.value })} />
-        ))}
+        <Choice
+          id="motion"
+          value={s.lessMotion}
+          onPick={v => set({ lessMotion: v })}
+          opts={[
+            { label: tri.system, value: undefined, key: 'system' },
+            { label: tri.on, value: true, key: 'on' },
+            { label: tri.off, value: false, key: 'off' },
+          ]}
+        />
       </Card>
       <Card>
         <Txt style={{ fontWeight: '600' }}>{T.settings.ads}</Txt>
         <Txt dim>{T.settings.adsAbout}</Txt>
-        <Button testID="ads-yes" kind={game.settings.adsConsent === 'yes' ? 'primary' : 'ghost'} label={T.money.consentYes} onPress={() => game.setSettings({ ...game.settings, adsConsent: 'yes' })} />
-        <Button testID="ads-no" kind={game.settings.adsConsent === 'no' ? 'primary' : 'ghost'} label={T.money.consentNo} onPress={() => game.setSettings({ ...game.settings, adsConsent: 'no' })} />
+        <Choice<Settings['adsConsent']>
+          id="ads"
+          value={s.adsConsent}
+          onPick={v => set({ adsConsent: v })}
+          opts={[
+            { label: T.money.consentYes, value: 'yes', key: 'yes' },
+            { label: T.money.consentNo, value: 'no', key: 'no' },
+          ]}
+        />
+      </Card>
+      <Card>
+        <Txt style={{ fontWeight: '600' }}>{T.settings.wipe}</Txt>
+        <Txt dim>{wiped ? T.settings.wiped : ask ? T.settings.wipeAsk : T.settings.wipeAbout}</Txt>
+        {ask ? (
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Button
+                testID="wipe-yes"
+                label={T.settings.wipeYes}
+                onPress={() => {
+                  setAsk(false);
+                  void game.wipe().then(() => setWiped(true));
+                }}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button testID="wipe-no" kind="ghost" label={T.settings.wipeNo} onPress={() => setAsk(false)} />
+            </View>
+          </View>
+        ) : (
+          <Button
+            testID="wipe"
+            kind="ghost"
+            label={T.settings.wipe}
+            onPress={() => {
+              setWiped(false);
+              setAsk(true);
+            }}
+          />
+        )}
       </Card>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: C.linen, flexGrow: 1 } });
+const useStyles = themed(c =>
+  StyleSheet.create({
+    wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 },
+    row: { flexDirection: 'row', gap: 10 },
+  }),
+);

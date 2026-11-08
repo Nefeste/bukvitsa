@@ -15,7 +15,7 @@ import { AboutScreen } from './src/screens/AboutScreen';
 import { PlusScreen } from './src/screens/PlusScreen';
 import { ConsentScreen } from './src/screens/ConsentScreen';
 import { AdScreen } from './src/screens/AdScreen';
-import { C } from './src/ui/theme';
+import { useLook } from './src/ui/theme';
 
 export default function App() {
   const game = useGame();
@@ -33,11 +33,13 @@ export default function App() {
     return () => sub.remove();
   }, [screen, setScreen]);
   const ready = (fontsReady || fontsError) && game.ready;
+  const { c } = useLook();
+  const root = [styles.root, { backgroundColor: c.linen }];
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.root}>
-        <StatusBar style="dark" />
-        <View style={styles.root}>
+      <SafeAreaView style={root}>
+        <StatusBar style={c.dark ? 'light' : 'dark'} />
+        <View style={root}>
           {ready ? (
             <>
               {screen.name === 'home' ? <HomeScreen game={game} /> : null}
@@ -57,4 +59,4 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: C.linen } });
+const styles = StyleSheet.create({ root: { flex: 1 } });
