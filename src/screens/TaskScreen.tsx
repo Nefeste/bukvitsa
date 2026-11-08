@@ -51,8 +51,9 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
     const ids = content.notebooks.find(b => b.key === flow.key)?.tasks ?? [];
     const next = nextOpen({ ...results, [id]: play.result }, ids, id);
     const to = next ? { name: 'task' as const, flow, id: next } : { name: 'notebook' as const, key: flow.key };
-    // межстраничный ролик — только здесь, между задачами тетради, и только если движок разрешил
-    if (interstitialDue('between', game.today)) {
+    // межстраничный ролик — только здесь, между задачами тетради, и только если движок разрешил; после
+    // последней задачи тетради — нет: на тетради может появиться форма оценки, два окна подряд — много
+    if (next && interstitialDue('between', game.today)) {
       const ad = { name: 'ad' as const, next: to };
       setScreen(game.settings.adsConsent ? ad : { name: 'consent', next: ad });
       return;

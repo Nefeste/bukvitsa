@@ -4,11 +4,12 @@
 // навсегда (canOpen в движке). Закрытая — «Открыть в „Буквице+“» и «Десять задач за ролик».
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { canOpen } from '../engine';
+import { canOpen, rateDue } from '../engine';
 import { content, task as taskById } from '../content';
 import { T } from '../i18n';
 import { prepareRewarded, rewardedReady, TENS, useMoney, watchForTens } from '../money';
 import { counts } from '../state/progress';
+import { askRating } from '../state/rate';
 import type { Game } from '../state/game';
 import { Button, Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
@@ -21,10 +22,17 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
   const b = content.notebooks.find(x => x.key === book);
   const opened = money.opened[book] ?? 0;
   const locked = !!b && !b.free && !money.plus && opened < b.tasks.length;
-  const { setScreen, settings } = game;
+  const { setScreen, settings, results, save, markRated } = game;
   useEffect(() => {
     if (locked) prepareRewarded(() => setReady(true));
   }, [locked]);
+  // оценка в RuStore — один раз, когда решена вторая тетрадь (08-game-design.md, «Оценка в RuStore»)
+  useEffect(() => {
+    const solved = (id: string) => !!results[id]?.done && !results[id]?.peeked;
+    if (!rateDue(content.notebooks, solved, book, save.rateAsked === true)) return;
+    markRated();
+    askRating();
+  }, [book, results, save.rateAsked, markRated]);
   // перед первым роликом — экран согласия; ответ вернёт сюда же, кнопка ждёт второго касания
   const tens = async () => {
     if (!b) return;
