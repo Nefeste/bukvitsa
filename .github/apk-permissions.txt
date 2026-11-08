@@ -6,5 +6,8 @@
 # вместе с store/forms.md («Разрешения Android») и политикой. Файл — путь владельца.
 android.permission.ACCESS_NETWORK_STATE
 android.permission.INTERNET
+# служебное ru.rustore.sdk:metrics (зависимость RuStore Pay 11.1.0): отложенные задачи SDK после перезагрузки
+# телефона; найдено по манифестам библиотек 08.11.2026, как в «Нардах» — решение владельца 08.11.2026
+android.permission.RECEIVE_BOOT_COMPLETED
 com.google.android.gms.permission.AD_ID
 games.gornitsa.bukvitsa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION

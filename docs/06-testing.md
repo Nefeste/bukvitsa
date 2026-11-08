@@ -74,8 +74,8 @@ React Compiler.
 
 Только на тег (`android.yml`): проверка подписи постоянным ключом, размер APK, список
 разрешений в сборке сравнивается с белым списком проекта (`.github/apk-permissions.txt`:
-`INTERNET`, `ACCESS_NETWORK_STATE`, `AD_ID` и служебное `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` — и больше
-ничего; вибрация вырезана в `app.json`); лишнее разрешение — красная сборка. Что отвечать в анкете RuStore —
+`INTERNET`, `ACCESS_NETWORK_STATE`, `AD_ID`, служебные `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` и
+`RECEIVE_BOOT_COMPLETED` (RuStore Pay) — и больше ничего; вибрация вырезана в `app.json`); лишнее разрешение — красная сборка. Что отвечать в анкете RuStore —
 [`../store/forms.md`](../store/forms.md), «Разрешения Android».
 
 ## Что уже есть (0.1.0, 08.11.2026)
