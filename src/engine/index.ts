@@ -2,6 +2,7 @@
 export * from './types';
 export * from './words';
 export * from './play';
+export * from './cipher';
 export * from './day';
 export * from './money';
 export * from './rate';

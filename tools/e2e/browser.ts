@@ -12,7 +12,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Page } from 'playwright';
 import { PACK } from '../../src/content/generated/pack';
-import { norm, type Task } from '../../src/engine';
+import { ALPHABET, cipherKey, norm, type Task } from '../../src/engine';
 
 const ROOT = join(import.meta.dir, '../..');
 const DIST = join(ROOT, process.env.E2E_DIST ?? 'dist-web');
@@ -164,12 +164,30 @@ try {
   const first = PACK.notebooks.find(b => b.key === 'first')!;
   check((await page.getByTestId('notebook-riddles-nature').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('notebook-riddles-nature').textContent())?.includes('В следующих версиях') === true, 'пустая тетрадь — «В следующих версиях»');
   await tap(page, 'notebook-first');
-  const kinds = ['proverb', 'riddle', 'extra-letter', 'parts', 'old-word'] as const;
+  const kinds = ['proverb', 'riddle', 'extra-letter', 'parts', 'old-word', 'cipher'] as const;
   for (const kind of kinds) {
     const k = first.tasks.findIndex(id => task(id).kind === kind);
     await tap(page, `cell-${k}`);
     await page.getByTestId('question').or(page.getByTestId('option-0')).first().waitFor();
-    if (kind === 'riddle') {
+    if (kind === 'cipher') {
+      // тайнопись (specs/2026-11-cipher.md): на первое число — неверная буква, остальные верно; поле полно, но не
+      // решено; «Убрать неверные» снимает её, «Открыть букву» ставит верную — решена
+      const t = task(first.tasks[k]);
+      const code = t.code!;
+      const key = cipherKey(t);
+      const free = key.map((_, i) => i + 1).filter(n => !t.open!.includes(n));
+      const wrongLetter = ALPHABET.split('').find(c => !key.includes(c))!;
+      for (const [j, n] of free.entries()) {
+        await tap(page, `code-${code.indexOf(n)}`);
+        await tap(page, `key-${j === 0 ? wrongLetter : key[n - 1]}`);
+      }
+      check((await page.getByTestId('verdict').count()) === 0, 'тайнопись: поле полно с неверной буквой — не решена');
+      await snap(page, 'cipher');
+      await tap(page, 'hint-1');
+      check((await page.getByTestId(`code-${code.indexOf(free[0])}`).getAttribute('aria-label'))?.endsWith('пусто') === true, 'тайнопись: «Убрать неверные» сняла неверную букву');
+      await tap(page, 'hint-2');
+      check((await page.getByTestId('verdict').textContent()) === 'Верно', 'тайнопись: «Открыть букву» дописала последнюю — решена');
+    } else if (kind === 'riddle') {
       // все три подсказки: задача подсмотрена
       for (const h of [1, 2, 3]) await tap(page, `hint-${h}`);
       check((await page.getByTestId('verdict').textContent()) === 'Подсмотрена', 'загадка: три подсказки — подсмотрена');
@@ -183,7 +201,7 @@ try {
     await tap(page, 'back');
   }
   await snap(page, 'notebook');
-  check((await page.getByTestId('notebook-progress').textContent())?.includes('4 из') === true && (await page.getByTestId('notebook-progress').textContent())?.includes('1 подсмотрены') === true, 'тетрадь: 4 решены, 1 подсмотрена');
+  check((await page.getByTestId('notebook-progress').textContent())?.includes('5 из') === true && (await page.getByTestId('notebook-progress').textContent())?.includes('1 подсмотрены') === true, 'тетрадь: 5 решены, 1 подсмотрена');
   await tap(page, 'back');
 
   // деньги (specs/2026-10-money.md): ролик по желанию открывает десять задач закрытой тетради; перед первым
@@ -284,6 +302,7 @@ try {
     ['ряд букв', t => t.row?.length ?? 0],
     ['части', t => (t.parts ? t.parts.join('').length : 0)],
     ['варианты', t => (t.options ? Math.max(...t.options.map(o => o.length)) : 0)],
+    ['тайнопись', t => (t.kind === 'cipher' ? t.code!.length : 0)],
   ];
   for (const [what, score] of cases) {
     const [date, id] = longest(score);
@@ -292,7 +311,7 @@ try {
     await small.getByTestId('question').waitFor();
     const fits = await small.evaluate(() => {
       const wide = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-      const out = [...document.querySelectorAll('[data-testid^="tile-"],[data-testid^="part-"],[data-testid^="option-"]')].filter(e => {
+      const out = [...document.querySelectorAll('[data-testid^="tile-"],[data-testid^="part-"],[data-testid^="option-"],[data-testid^="code-"],[data-testid^="key-"]')].filter(e => {
         const r = e.getBoundingClientRect();
         return r.left < 0 || r.right > window.innerWidth + 0.5;
       }).length;
@@ -302,6 +321,21 @@ try {
     check(fits.wide <= 360 && fits.out === 0, `360 × 640, «ещё крупнее»: ${what} (${id}) — в ширину экрана`);
   }
   await narrow.close();
+
+  // Тайнопись обычным размером на 360 × 640: самая длинная пословица календаря целиком над клавиатурой, без
+  // прокрутки; при «ещё крупнее» она прокручивается над неподвижной клавиатурой (specs/2026-11-cipher.md)
+  const plain = await browser.newContext({ viewport: { width: 360, height: 640 } });
+  const pl = await plain.newPage();
+  const [cDate, cId] = longest(t => (t.kind === 'cipher' ? t.code!.length : 0));
+  await pl.goto(`${ROOT_URL()}?date=${cDate}`);
+  await pl.getByTestId('daily-solve').click();
+  await pl.getByTestId('question').waitFor();
+  const q = (await pl.getByTestId('question').boundingBox())!;
+  const keyA = (await pl.getByTestId('key-А').boundingBox())!;
+  const keyZ = (await pl.getByTestId('key-Я').boundingBox())!;
+  check(q.y + q.height <= keyA.y && keyZ.y + keyZ.height <= 640 && keyA.width >= 36, `360 × 640: тайнопись (${cId}, ${task(cId).code!.length} букв) над клавиатурой, клавиши ${Math.round(keyA.width)} × ${Math.round(keyA.height)}`);
+  await pl.screenshot({ path: join(OUT, `${String(++shot).padStart(2, '0')}-narrow-cipher-plain.png`) });
+  await plain.close();
 
   if (errors.length) throw new Error(`ошибки в консоли:\n${errors.join('\n')}`);
   console.log('Сценарий пройден.');

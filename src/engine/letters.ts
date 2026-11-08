@@ -11,3 +11,6 @@ export const COMMON = 'ОЕАИНТСРВЛКМДПУ';
 export function norm(s: string): string {
   return s.toUpperCase().replace(/Ё/g, 'Е');
 }
+
+/** Клавиатура «Тайнописи» (specs/2026-11-cipher.md): алфавит по порядку, е и ё — одна клавиша. */
+export const ALPHABET = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';

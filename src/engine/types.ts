@@ -2,7 +2,7 @@
 // и Math.random(); дата приходит строкой «ГГГГ-ММ-ДД»; ряд букв, варианты и части приходят из
 // сборки уже перемешанными (ADR 0005).
 
-export type Kind = 'proverb' | 'riddle' | 'extra-letter' | 'old-word' | 'parts' | 'ending';
+export type Kind = 'proverb' | 'riddle' | 'extra-letter' | 'old-word' | 'parts' | 'ending' | 'cipher';
 
 /** Задача из встроенного набора. */
 export interface Task {
@@ -13,7 +13,7 @@ export interface Task {
   kind: Kind;
   /** условие как показывается: с пропуском «____», текст загадки, толкование */
   prompt: string;
-  /** ответ строчными без знаков (proverb, riddle, old-word); ending — конец пословицы как в источнике; parts — порядок частей '2,0,1'; extra-letter — 'слово:позиция' (с нуля) */
+  /** ответ строчными без знаков (proverb, riddle, old-word); ending — конец пословицы как в источнике; parts — порядок частей '2,0,1'; extra-letter — 'слово:позиция' (с нуля); cipher — буквы текста подряд, прописные, ё как е */
   answer: string;
   /** ряд букв — ответ и лишние, уже перемешан (proverb, riddle) */
   row?: string[];
@@ -23,6 +23,10 @@ export interface Task {
   words?: string[];
   /** части, перемешаны (parts) */
   parts?: string[];
+  /** тайнопись: число каждой буквы текста по порядку, 1…N (ADR 0009) */
+  code?: number[];
+  /** тайнопись: числа, открытые с начала */
+  open?: number[];
   /** полный текст по источнику — для «Откуда это» */
   text: string;
   /** «Откуда это»: строка о значении по источнику */

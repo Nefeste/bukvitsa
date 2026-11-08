@@ -14,10 +14,13 @@
 // Словарь — сами пословицы источника (content/sources/dal-1862/): частотный словарь со стороны не нужен
 // (решение спецификации — «до решения — проверка по самим ответам набора»).
 //
+// - тайнопись — другая пословица сборника с тем же узором чисел и теми же открытыми буквами: игрок её разгадает
+//   и будет прав по-своему — ошибка (specs/2026-11-cipher.md, «Неудачные случаи»).
+//
 //   bun tools/content/play.ts            — отчёт dist/play.md; ошибки — код выхода 1
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { norm as engineNorm, words, type Task } from '../../src/engine';
+import { cipherKey, norm as engineNorm, textLetters, words, type Task } from '../../src/engine';
 import { build } from './build';
 import { loadPool, norm } from './pool';
 
@@ -125,6 +128,46 @@ export function partsRivals(t: Task, bigrams: Map<string, number>): string[][] {
   return out;
 }
 
+/** Узор слов: длины слов по буквам — по нему ищутся соперники «Тайнописи». */
+const shape = (text: string) => words(text).map(w => textLetters(w).length).join(' ');
+
+/** Пословицы по узору слов — буквами. */
+export function shapeIndex(texts: Iterable<string>): Map<string, { text: string; ls: string[] }[]> {
+  const out = new Map<string, { text: string; ls: string[] }[]>();
+  for (const text of texts) {
+    const k = shape(text);
+    out.set(k, [...(out.get(k) ?? []), { text, ls: textLetters(text) }]);
+  }
+  return out;
+}
+
+/**
+ * Тайнопись: пословицы из `texts`, которые подходят под узор чисел задачи и её открытые буквы, но читаются
+ * иначе. Одинаковые числа — одинаковые буквы, разные — разные.
+ */
+export function cipherRivals(t: Task, texts: Iterable<string> | Map<string, { text: string; ls: string[] }[]>): string[] {
+  const code = t.code ?? [];
+  const key = cipherKey(t);
+  const own = textLetters(t.text).join('');
+  const index = texts instanceof Map ? texts : shapeIndex(texts);
+  const out: string[] = [];
+  for (const { text: s, ls } of index.get(shape(t.text)) ?? []) {
+    if (ls.join('') === own) continue;
+    const of = new Map<number, string>();
+    const back = new Map<string, number>();
+    const ok = ls.every((c, i) => {
+      const n = code[i];
+      if ((t.open ?? []).includes(n) && key[n - 1] !== c) return false;
+      if ((of.get(n) ?? c) !== c || (back.get(c) ?? n) !== n) return false;
+      of.set(n, c);
+      back.set(c, n);
+      return true;
+    });
+    if (ok) out.push(s);
+  }
+  return out;
+}
+
 export function play(root = ROOT): { findings: Finding[]; total: number } {
   const { pack, errors } = build(root);
   if (errors.length) throw new Error(`сборка с ошибками — сначала npm run content:\n${errors.join('\n')}`);
@@ -135,6 +178,7 @@ export function play(root = ROOT): { findings: Finding[]; total: number } {
     const ws = words(p.text).map(norm);
     for (let i = 0; i + 1 < ws.length; i++) bigrams.set(`${ws[i]} ${ws[i + 1]}`, (bigrams.get(`${ws[i]} ${ws[i + 1]}`) ?? 0) + 1);
   }
+  const texts = shapeIndex([...pool.byId.values()].map(p => p.text));
   const findings: Finding[] = [];
   const add = (id: string, level: Finding['level'], what: string) => findings.push({ id, level, what });
   for (const t of pack.tasks) {
@@ -152,6 +196,9 @@ export function play(root = ROOT): { findings: Finding[]; total: number } {
       if ((pool.freq.get(norm(shown)) ?? 0) >= MIN_FREQ) add(t.id, 'warning', `«${shown}» с лишней буквой — само слово сборника (${pool.freq.get(norm(shown))})`);
     } else if (t.kind === 'old-word' || t.kind === 'ending') {
       for (const p of optionProblems(t)) add(t.id, 'error', p);
+    } else if (t.kind === 'cipher') {
+      const r = cipherRivals(t, texts);
+      if (r.length) add(t.id, 'error', `тот же узор чисел у «${r[0]}»${r.length > 1 ? ` и ещё ${r.length - 1}` : ''}: другой ответ`);
     } else if (t.kind === 'parts') {
       const r = partsRivals(t, bigrams);
       if (r.length) add(t.id, 'warning', `другой порядок читается не хуже: «${r[0].join(' ')}»${r.length > 1 ? ` и ещё ${r.length - 1}` : ''}`);

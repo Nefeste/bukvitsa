@@ -1,0 +1,16 @@
+id: cipher-0026
+version: 1
+kind: cipher
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Пища
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Пища
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.pischa.286.1
+about: Из раздела «Пища». У Даля рядом — «Хлеб всему голова».
+text: Хлеб да соль, и обед пошел.

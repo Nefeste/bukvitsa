@@ -1,11 +1,17 @@
-// Экран «Задача» (08-game-design.md, «Пять видов задач», «Подсказки», «Откуда это»): условие крупно,
+// Экран «Задача» (08-game-design.md, «Шесть видов задач», «Буква на число» — specs/2026-11-cipher.md, «Подсказки», «Откуда это»): условие крупно,
 // поле ответа, ряд букв / варианты / строка / части, три подсказки по порядку. Решил — «Верно» и
 // карточка «Откуда это» с «Ещё» и «На главную».
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
+  ALPHABET,
   choose,
+  eraseLetter,
   hint,
+  pinnedLetters,
+  putLetter,
+  selectCode,
+  tokens,
   nextHint,
   openWord,
   pickPart,
@@ -47,7 +53,7 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
   }, [play.result, id, record, results, flow.from]);
   const h = nextHint(task, play);
   const hintLabel = (n: number) =>
-    n === 2 && task.kind === 'parts' ? T.task.hintPart : n === 2 && task.kind === 'ending' ? T.task.hintFirstWord : n === 1 && task.kind === 'extra-letter' ? T.task.hintWord : T.task.hint[n];
+    n === 1 && task.kind === 'cipher' ? T.task.hintWrong : n === 2 && task.kind === 'parts' ? T.task.hintPart : n === 2 && task.kind === 'ending' ? T.task.hintFirstWord : n === 1 && task.kind === 'extra-letter' ? T.task.hintWord : T.task.hint[n];
   const back = () => setScreen(flow.from === 'daily' ? { name: 'home' } : { name: 'notebook', key: flow.key });
   const more = () => {
     if (flow.from !== 'notebook') return;
@@ -85,7 +91,21 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
         ) : (
           <>
             <Answer task={task} play={play} setPlay={setPlay} />
-            {h != null ? <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => { cue('hint'); setPlay(p => hint(task, p)); }} /> : null}
+            {task.kind === 'cipher' ? (
+              // тайнопись: «Стереть» и подсказка в один ряд — пословице нужно место над клавиатурой
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Button testID="erase" kind="ghost" label={T.task.erase} onPress={() => setPlay(p => eraseLetter(p))} />
+                </View>
+                {h != null ? (
+                  <View style={{ flex: 2 }}>
+                    <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => { cue('hint'); setPlay(p => hint(task, p)); }} />
+                  </View>
+                ) : null}
+              </View>
+            ) : h != null ? (
+              <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => { cue('hint'); setPlay(p => hint(task, p)); }} />
+            ) : null}
           </>
         )}
       </View>
@@ -93,9 +113,91 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
   );
 }
 
+/** Тайнопись: слова с примыкающими знаками — группами, слово не переносится; у каждой буквы — номер в тексте. */
+function cipherGroups(text: string): { chars: { c: string; at: number | null }[] }[] {
+  const out: { chars: { c: string; at: number | null }[] }[] = [];
+  let at = 0;
+  let glue = false;
+  for (const t of tokens(text)) {
+    if (t.word) {
+      const chars = [...t.text].map(c => (c === '-' ? { c, at: null } : { c, at: at++ }));
+      if (glue && out.length) out[out.length - 1].chars.push(...chars);
+      else out.push({ chars });
+      glue = false;
+      continue;
+    }
+    // промежуток: знаки сразу за словом — к слову; отдельное тире — своей группой
+    const [head, ...rest] = t.text.split(/\s+/);
+    if (head && out.length) out[out.length - 1].chars.push(...[...head].map(c => ({ c, at: null })));
+    for (const r of rest.filter(Boolean)) out.push({ chars: [...r].map(c => ({ c, at: null })) });
+    glue = !/\s$/.test(t.text) && rest.length === 0 && !!head;
+  }
+  return out;
+}
+
+function Cipher({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
+  const styles = useStyles();
+  const look = useLook();
+  const code = task.code ?? [];
+  return (
+    <View style={{ gap: 12 }}>
+      <Txt dim>{play.clean ? T.task.clean : T.kind[task.kind].ask}</Txt>
+      <View style={[styles.cipherWrap, play.shake && styles.shake]} testID="question">
+        {cipherGroups(task.text).map((g, k) => (
+          <View key={k} style={styles.cipherWord}>
+            {g.chars.map((ch, j) => {
+              if (ch.at == null) return <Text key={j} style={styles.cipherMark}>{ch.c}</Text>;
+              const n = code[ch.at];
+              const m = play.marks[n - 1];
+              const pinned = play.pinned[n - 1];
+              return (
+                <Pressable
+                  key={j}
+                  testID={`code-${ch.at}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={T.task.cell(n, m)}
+                  disabled={pinned || play.result.done}
+                  onPress={() => setPlay(p => selectCode(p, n))}
+                  style={[styles.cell, play.sel === n && styles.cellSel, pinned && styles.cellPinned]}>
+                  <Text style={[styles.cellText, pinned && { color: look.c.spruce }]}>{m ?? ''}</Text>
+                  <Text style={styles.cellNum}>{n}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function Keyboard({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
+  const styles = useStyles();
+  const fixed = pinnedLetters(play);
+  const used = new Set(play.marks.filter((m): m is string => m != null));
+  const rows = [0, 8, 16, 24].map(i => ALPHABET.slice(i, i + 8).split(''));
+  return (
+    <View style={{ gap: 4 }}>
+      {rows.map((r, k) => (
+        <View key={k} style={styles.keyRow}>
+          {r.map(c => {
+            const off = fixed.has(c);
+            return (
+              <Pressable key={c} testID={`key-${c}`} accessibilityRole="button" accessibilityLabel={T.task.key(c)} disabled={off} onPress={() => setPlay(p => putLetter(task, p, c))} style={({ pressed }) => [styles.key, used.has(c) && styles.keyUsed, off && styles.keyOff, pressed && styles.pressed]}>
+                <Text style={[styles.keyText, off && styles.keyTextOff]}>{c}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
   const styles = useStyles();
   const look = useLook();
+  if (task.kind === 'cipher') return <Cipher task={task} play={play} setPlay={setPlay} />;
   if (task.kind === 'extra-letter') {
     // найти в строке: слова плашками; раскрытое слово — по буквам
     return (
@@ -161,6 +263,7 @@ function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f
 /** Нижняя половина экрана — под большой палец. */
 function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
   const styles = useStyles();
+  if (task.kind === 'cipher') return <Keyboard task={task} play={play} setPlay={setPlay} />;
   if (task.kind === 'proverb' || task.kind === 'riddle') {
     const row = task.row ?? [];
     const used = usedTiles(play);
@@ -259,7 +362,7 @@ const useStyles = themed((c, z) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.linen },
     top: { padding: 16, gap: 12 },
-    bottom: { padding: 16, gap: 12, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: c.linen },
+    bottom: { padding: 16, gap: 10, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: c.linen },
     row: { flexDirection: 'row', gap: 10 },
     wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
     proverbText: { fontSize: z(22), lineHeight: z(32), fontFamily: FONTS.body, color: c.ink },
@@ -280,5 +383,20 @@ const useStyles = themed((c, z) =>
     choiceText: { fontSize: z(S.body), color: c.ink, fontFamily: FONTS.body, lineHeight: z(24) },
     off: { color: c.inkSoft, textDecorationLine: 'line-through' },
     pressed: { opacity: 0.8 },
+    // тайнопись: слово не переносится (самое длинное — 9 букв, 08-game-design.md, «Буква на число»)
+    cipherWrap: { flexDirection: 'row', flexWrap: 'wrap', columnGap: z(12), rowGap: 6, justifyContent: 'center' },
+    cipherWord: { flexDirection: 'row', gap: 2, alignItems: 'flex-start' },
+    cipherMark: { fontSize: z(20), lineHeight: z(28), color: c.ink, fontFamily: FONTS.body },
+    cell: { width: z(23), alignItems: 'center', borderRadius: 4, borderWidth: 2, borderColor: 'transparent' },
+    cellSel: { borderColor: c.ink, backgroundColor: c.cell },
+    cellPinned: {},
+    cellText: { height: z(26), fontSize: z(20), lineHeight: z(26), color: c.ink, fontFamily: FONTS.title, borderBottomWidth: 1, borderBottomColor: c.line, alignSelf: 'stretch', textAlign: 'center' },
+    cellNum: { fontSize: z(10), lineHeight: z(12), color: c.inkSoft, fontFamily: FONTS.body },
+    keyRow: { flexDirection: 'row', gap: 4 },
+    key: { flex: 1, height: 40, borderRadius: R.tile, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    keyUsed: { backgroundColor: c.cell },
+    keyOff: { backgroundColor: c.cell, borderColor: c.cell },
+    keyText: { fontSize: z(18), color: c.ink, fontFamily: FONTS.title },
+    keyTextOff: { color: c.inkSoft },
   }),
 );
