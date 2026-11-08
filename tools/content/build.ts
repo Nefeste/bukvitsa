@@ -4,7 +4,7 @@
 //
 //   bun tools/content/build.ts [--check] [--release]
 //   --check   — только проверить, ничего не писать
-//   --release — в набор только `review: checked`; календарь — только на checked и с запасом ≥ 365 дней
+//   --release — в набор только `review: checked`; календарь — только на checked и с запасом ≥ RELEASE_DAYS (60) дней, ADR 0008
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
@@ -18,6 +18,8 @@ import { calendarErrors, lockErrors, type Lock } from './released';
 import { endingSplit, letterRow, shuffleNotSame } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
+/** Запас выпущенного календаря от дня сборки, дней (ADR 0008: 60 сверенных, дописывается каждым выпуском). */
+export const RELEASE_DAYS = 60;
 const RU = /^[а-яё]+(?:-[а-яё]+)*$/;
 
 interface Book {
@@ -190,7 +192,7 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
     const dates = Object.keys(calendar.days).sort();
     const last = dates[dates.length - 1];
     const today = opts.today ?? new Date().toISOString().slice(0, 10);
-    if (!last || dayNumber(last) - dayNumber(today) < 365) errors.push(`календарь: запас меньше 365 дней (последний день — ${last ?? 'нет'})`);
+    if (!last || dayNumber(last) - dayNumber(today) < RELEASE_DAYS) errors.push(`календарь: запас меньше ${RELEASE_DAYS} дней (последний день — ${last ?? 'нет'})`);
   }
 
   // выпущенное не меняется: запись — только новой version, дата календаря — никогда (tools/content/release.ts)

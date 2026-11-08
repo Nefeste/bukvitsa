@@ -73,7 +73,7 @@ pinned and changed only in a separate PR.
 npm ci
 npx expo install <package>          # ALWAYS use instead of npm/yarn/pnpm/bun add
 npm run content                     # FIRST: content/ → src/content/generated/pack.ts (not in git) + checks; report dist/report.md
-bun tools/content/build.ts --check  # checks only; --release — only `checked`, calendar ≥ 365 days of checked
+bun tools/content/build.ts --check  # checks only; --release — only `checked`, calendar ≥ 60 days of checked (ADR 0008)
 bun tools/content/pick.ts           # draft records from the downloaded Dahl text (09-content.md §9); never renumbers
 bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years 3 [--draft]   # append the daily calendar (never edit released dates)
 bun tools/content/fetch.ts          # download missing Dahl sections from Wikisource (own User-Agent, 4 s apart)
@@ -119,7 +119,7 @@ charter's `docs/05-rules.md` and are not repeated here. This project's own rules
   `docs/08-game-design.md`; no subscription, no trial, no countdown discounts.
 - **The daily calendar is immutable once released** (`content/calendar.yaml`, ADR 0002):
   the calendar tool only appends; a wrong puzzle is fixed by a new `version` of the record
-  under the same `id`. Keep ≥ 365 days of calendar ahead in every release.
+  under the same `id`. Keep ≥ 60 days of checked calendar ahead in every release (ADR 0008); each release appends checked days.
 - **No server, no analytics SDK, no profile** (ADR 0001 table). The ad SDK is the only
   third-party code with network access; its permissions are the project's whitelist
   (`.github/apk-permissions.txt`, checked on the tag build) and nothing more; RuStore forms — `store/forms.md`.
