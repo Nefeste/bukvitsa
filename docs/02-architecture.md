@@ -170,10 +170,12 @@ Expo SDK 57, React Native, TypeScript — как у соседей (ADR студ
 - **Сохранение — схема 1** ([`04-data-model.md`](04-data-model.md), «Как сделано в 0.2»): `src/state/save.ts` (события,
   настройки, день установки, счётчики, отметка оценки), `migrations.ts` (шаги схем), `storage.ts` (запись `bukvitsa.save`,
   перенос итогов 0.1, нечитаемое — в `bukvitsa.broken`). Итоги для экранов выводятся из событий (`resultsOf`).
-  Автобэкап — плагином `plugins/with-backup.js` из «Нард»: путь владельца, отдельный PR.
+  Автобэкап — плагином `plugins/with-backup.js` из «Нард» (PR #15): в копию только база `RKStorage`.
 - **Тема и «ещё крупнее»**: `src/ui/theme.ts` — палитры `LIGHT` и `DARK` из `brand/tokens.css` («горница вечером»),
   масштаб ×1,25; стили экранов — `themed((c, z) => …)`, перерисовка по `useLook()`. Тема «как в телефоне» работает в
-  веб-сборке; на Android — после `userInterfaceStyle: automatic` в `app.json` (путь владельца, тот же отдельный PR).
+  веб-сборке; на Android — с `userInterfaceStyle: automatic` в `app.json` и пакетом `expo-system-ui` (PR #15).
+- **Заставка без белой вспышки** — `plugins/with-splash-window.js` из «Нард» перед `expo-splash-screen` (правило устава,
+  PR #15); проверяет `tools/test/android.test.ts`.
 - **Оценка в RuStore**: `modules/rustore-review` — копия из «Нард» (nardy @ 1d2bdff), правило — `src/engine/rate.ts`,
   вызов — `src/state/rate.ts`.
 - **«Виртуальный игрок»** `tools/content/play.ts` ([`09-content.md`](09-content.md), §5).
