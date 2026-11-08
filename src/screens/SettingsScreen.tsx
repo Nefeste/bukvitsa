@@ -83,6 +83,11 @@ export function SettingsScreen({ game }: { game: Game }) {
         />
       </Card>
       <Card>
+        <Txt style={{ fontWeight: '600' }}>{T.settings.report}</Txt>
+        <Txt dim>{T.settings.reportAbout}</Txt>
+        <Button testID="report" kind="ghost" label={T.settings.report} onPress={() => game.setScreen({ name: 'report', task: null, screen: 'settings', back: { name: 'settings' } })} />
+      </Card>
+      <Card>
         <Txt style={{ fontWeight: '600' }}>{T.settings.wipe}</Txt>
         <Txt dim>{wiped ? T.settings.wiped : ask ? T.settings.wipeAsk : T.settings.wipeAbout}</Txt>
         {ask ? (

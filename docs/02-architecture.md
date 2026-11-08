@@ -182,6 +182,13 @@ Expo SDK 57, React Native, TypeScript — как у соседей (ADR студ
 - **Звука нет**: `expo-audio` добавляет в APK разрешение `MODIFY_AUDIO_SETTINGS` — его нет в белом списке
   (`.github/apk-permissions.txt`, путь владельца); вопрос владельцу — #14.
 
+## «Сообщить об ошибке» (0.3)
+
+`src/state/crashlog.ts` (журнал сбоев, запись `bukvitsa.crashlog`, 30 последних; ловушки ставит `App.tsx` до первого
+экрана) и `src/state/report.ts` (текст отчёта, чистая функция) — копии из «Вотчины» (votchina @ b6da04a);
+`src/screens/ReportScreen.tsx` — экран вместо её всплывающего листа. Игра ничего не отправляет: письмо или
+«Поделиться» — руками игрока ([`03-server-api.md`](03-server-api.md)).
+
 ## Графика (ADR 0023 устава)
 
 Правила — устав: [«Графика»](https://github.com/Nefeste/gornitsa/blob/main/docs/05-rules.md#графика),
