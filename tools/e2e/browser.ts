@@ -1,10 +1,13 @@
 // Сценарий в браузере (06-testing.md, §5): веб-сборка, настоящие нажатия, снимки в tools/e2e/out/.
 // Главная → задача дня → «Откуда это» и «Поделиться» → архив → первая тетрадь: по задаче каждого из
 // пяти видов (с подсказкой, с ошибкой, подсмотренная) → закрытая тетрадь → настройки (тёмная тема, «ещё
-// крупнее») → об игре → перезагрузка: прогресс и настройки на месте → «Удалить мои данные». Ответы сценарий берёт из набора — экран должен показывать ту же
-// задачу, что собрала сборка. Ошибка в консоли — провал.
+// крупнее») → об игре → перезагрузка: прогресс и настройки на месте → «Удалить мои данные». Ответы сценарий
+// берёт из набора — экран должен показывать ту же задачу, что собрала сборка. Ошибка в консоли — провал; страницы
+// отдаются с правилами безопасности сайта (CSP), так что их нарушение — тоже провал.
 //
 //   EXPO_OFFLINE=1 npm run export:web && bun tools/e2e/browser.ts
+//   BUKVITSA_WEB_BASE=/bukvitsa/test EXPO_OFFLINE=1 npx expo export -p web --output-dir dist-site
+//   E2E_DIST=dist-site E2E_BASE=/bukvitsa/test bun tools/e2e/browser.ts     — сборка для сайта (site.yml)
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Page } from 'playwright';
@@ -18,14 +21,29 @@ mkdirSync(OUT, { recursive: true });
 const DAY1 = '2026-12-01';
 const DAY3 = '2026-12-03';
 
+// Сборка для сайта (`/bukvitsa/test`, site.yml) отдаётся из той же папки под этим адресом. Правила безопасности —
+// те же, что ставит nginx сайта (deploy/bukvitsa/nginx.sh в Nefeste/gornitsagames): меняете там — поменяйте здесь.
+const BASE = (process.env.E2E_BASE ?? '').replace(/\/+$/, '');
+const CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+
 const server = Bun.serve({
   port: 0,
   async fetch(req) {
-    const path = new URL(req.url).pathname;
+    let path = decodeURIComponent(new URL(req.url).pathname);
+    if (BASE) {
+      if (path === BASE) path = `${BASE}/`;
+      // значок браузер просит у корня домена — на сайте он есть у самого сайта
+      if (path === '/favicon.ico') return new Response(null, { status: 204 });
+      if (!path.startsWith(`${BASE}/`)) return new Response('not found', { status: 404 });
+      path = path.slice(BASE.length);
+    }
     const file = Bun.file(join(DIST, path === '/' ? 'index.html' : path));
-    return (await file.exists()) ? new Response(file) : new Response(Bun.file(join(DIST, 'index.html')));
+    const body = (await file.exists()) ? file : Bun.file(join(DIST, 'index.html'));
+    return new Response(body, { headers: { 'content-security-policy': CSP } });
   },
 });
+const ROOT_URL = () => `http://localhost:${server.port}${BASE}/`;
 
 const errors: string[] = [];
 let shot = 0;
@@ -88,7 +106,7 @@ try {
   page.on('pageerror', e => errors.push(String(e)));
 
   // задача дня
-  await page.goto(`http://localhost:${server.port}/?date=${DAY1}`);
+  await page.goto(`${ROOT_URL()}?date=${DAY1}`);
   await page.getByTestId('daily').waitFor();
   await snap(page, 'home');
   const d1 = task(PACK.calendar.days[DAY1]);
@@ -106,7 +124,7 @@ try {
   check((await page.getByTestId('daily-result').textContent())?.includes('со второй попытки') === true, 'главная: задача дня решена');
 
   // архив
-  await page.goto(`http://localhost:${server.port}/?date=${DAY3}`);
+  await page.goto(`${ROOT_URL()}?date=${DAY3}`);
   await tap(page, 'archive');
   await page.getByTestId(`day-${DAY1}`).waitFor();
   check((await page.getByTestId(`day-${DAY1}`).textContent())?.includes('●') === true && (await page.getByTestId(`day-${DAY3}`).count()) === 0, 'архив: прошлые дни со значками, сегодняшнего и будущих нет');
@@ -117,7 +135,7 @@ try {
   const WED = '2026-12-02';
   const dw = task(PACK.calendar.days[WED]);
   check(dw.kind === 'ending', `среда ${WED}: конец пословицы (${dw.kind})`);
-  await page.goto(`http://localhost:${server.port}/?date=${WED}`);
+  await page.goto(`${ROOT_URL()}?date=${WED}`);
   await tap(page, 'daily-solve');
   await page.getByTestId('question').waitFor();
   check((await page.getByTestId('question').textContent())?.endsWith('— …') === true, 'конец пословицы: начало и «— …»');
@@ -179,7 +197,7 @@ try {
     m.counters = { installDay: '2026-12-01', solved: 12, sinceAd: 2, lastAdAt: 0 };
     localStorage.setItem(k, JSON.stringify(m));
   });
-  await page.goto(`http://localhost:${server.port}/?date=${DAY3}`);
+  await page.goto(`${ROOT_URL()}?date=${DAY3}`);
   await tap(page, 'notebook-labor');
   // задача из открытых, которой нет в первой тетради (образец proverb-0001 стоит в двух тетрадях — он уже решён)
   const li = labor.tasks.findIndex((id, i) => i < 10 && !first.tasks.includes(id));
@@ -218,7 +236,7 @@ try {
   check(JSON.stringify(await look()) === JSON.stringify(['rgb(233, 232, 224)', '21px']), 'тёмная тема и «ещё крупнее»: светлые чернила, текст 17 → 21 px');
   await snap(page, 'about');
 
-  await page.goto(`http://localhost:${server.port}/?date=${DAY1}`);
+  await page.goto(`${ROOT_URL()}?date=${DAY1}`);
   await page.getByTestId('daily-result').waitFor();
   check(true, 'после перезагрузки задача дня решена');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('bukvitsa.save') ?? 'null'));
