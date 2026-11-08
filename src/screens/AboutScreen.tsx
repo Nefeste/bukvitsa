@@ -6,9 +6,10 @@ import { T } from '../i18n';
 import type { Game } from '../state/game';
 import { APP_BUILD, APP_VERSION } from '../version';
 import { Card, Header, Txt } from '../ui/kit';
-import { C } from '../ui/theme';
+import { themed } from '../ui/theme';
 
 export function AboutScreen({ game }: { game: Game }) {
+  const styles = useStyles();
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Header title={T.about.title} onBack={() => game.setScreen({ name: 'home' })} back={T.task.back} />
@@ -25,4 +26,6 @@ export function AboutScreen({ game }: { game: Game }) {
   );
 }
 
-const styles = StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: C.linen, flexGrow: 1 } });
+const useStyles = themed((c, z) =>
+  StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 } }),
+);

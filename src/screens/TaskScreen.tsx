@@ -26,9 +26,10 @@ import { shareOrCopy } from '../state/share';
 import type { Flow, Game } from '../state/game';
 import { Button, Card, Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
-import { C, R, S } from '../ui/theme';
+import { R, S, themed, useLook } from '../ui/theme';
 
 export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: string }) {
+  const styles = useStyles();
   const task = taskById(id);
   const [play, setPlay] = useState<Play>(() => startPlay(task, resultOf(game.results, id)));
   const { record, results, setScreen } = game;
@@ -63,7 +64,7 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.top}>
         <Header title={T.kind[task.kind].name} onBack={back} back={T.task.back} />
-        {play.result.done ? <Source task={task} play={play} flow={flow} /> : <Question task={task} play={play} setPlay={setPlay} />}
+        {play.result.done ? <Source task={task} play={play} flow={flow} onShare={() => game.shared(id)} /> : <Question task={task} play={play} setPlay={setPlay} />}
       </ScrollView>
       <View style={styles.bottom}>
         {play.result.done ? (
@@ -89,6 +90,8 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
 }
 
 function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
+  const styles = useStyles();
+  const look = useLook();
   if (task.kind === 'extra-letter') {
     // найти в строке: слова плашками; раскрытое слово — по буквам
     return (
@@ -113,7 +116,7 @@ function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f
               const miss = play.missed.includes(`${play.open}:${k}`);
               return (
                 <Pressable key={k} testID={`letter-${k}`} accessibilityRole="button" accessibilityLabel={T.task.letter(c)} disabled={miss} onPress={() => setPlay(p => tapLetter(task, p, k))} style={[styles.tile, miss && styles.tileUsed]}>
-                  <Text style={[styles.tileText, miss && { color: C.inkSoft }]}>{c}</Text>
+                  <Text style={[styles.tileText, miss && { color: look.c.inkSoft }]}>{c}</Text>
                 </Pressable>
               );
             })}
@@ -131,7 +134,7 @@ function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f
           {play.chosen.length ? (
             play.chosen.map((c, k) => (
               <Pressable key={k} testID={`placed-${k}`} accessibilityRole="button" onPress={() => setPlay(p => unpickPart(p, k))}>
-                <Text style={[styles.proverbText, k < play.fixed && { color: C.spruce }]}>{parts[c]}</Text>
+                <Text style={[styles.proverbText, k < play.fixed && { color: look.c.spruce }]}>{parts[c]}</Text>
               </Pressable>
             ))
           ) : (
@@ -153,6 +156,7 @@ function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f
 
 /** Нижняя половина экрана — под большой палец. */
 function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: (p: Play) => Play) => void }) {
+  const styles = useStyles();
   if (task.kind === 'proverb' || task.kind === 'riddle') {
     const row = task.row ?? [];
     const used = usedTiles(play);
@@ -216,12 +220,14 @@ function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: 
 }
 
 /** «Откуда это»: «Верно» или «Подсмотрена», полный текст, источник, строка о значении. */
-function Source({ task, play, flow }: { task: Task; play: Play; flow: Flow }) {
+function Source({ task, play, flow, onShare }: { task: Task; play: Play; flow: Flow; onShare: () => void }) {
+  const styles = useStyles();
+  const look = useLook();
   const r = play.result;
   const [copied, setCopied] = useState(false);
   return (
     <View style={{ gap: 12 }}>
-      <Txt style={{ fontWeight: '600', color: r.peeked ? C.inkSoft : C.spruce }} testID="verdict">
+      <Txt style={{ fontWeight: '600', color: r.peeked ? look.c.inkSoft : look.c.spruce }} testID="verdict">
         {r.peeked ? T.task.peeked : T.task.right}
       </Txt>
       <Card testID="source">
@@ -233,35 +239,41 @@ function Source({ task, play, flow }: { task: Task; play: Play; flow: Flow }) {
       {flow.from === 'daily' ? (
         <>
           <Txt dim>{howSolved(r)}</Txt>
-          <Button testID="share" kind="ghost" label={copied ? T.home.copied : T.home.share} onPress={() => void shareOrCopy(shareText(flow.date, task.kind, r)).then(setCopied)} />
+          <Button testID="share" kind="ghost" label={copied ? T.home.copied : T.home.share} onPress={() => {
+              onShare();
+              void shareOrCopy(shareText(flow.date, task.kind, r)).then(setCopied);
+            }}
+          />
         </>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.linen },
-  top: { padding: 16, gap: 12 },
-  bottom: { padding: 16, gap: 12, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.linen },
-  row: { flexDirection: 'row', gap: 10 },
-  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
-  proverbText: { fontSize: 22, lineHeight: 32, fontFamily: FONTS.body, color: C.ink },
-  answerBox: { minHeight: 64, gap: 4, padding: 12, borderRadius: R.card, borderWidth: 1, borderColor: C.line, backgroundColor: C.paper },
-  slot: { width: 48, height: 52, borderRadius: R.tile, backgroundColor: C.cell, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.cell },
-  slotLocked: { borderColor: C.spruce, backgroundColor: C.paper },
-  tile: { width: 48, height: 52, borderRadius: R.tile, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  tileUsed: { backgroundColor: C.cell, borderColor: C.cell },
-  tileText: { fontSize: 24, color: C.ink, fontFamily: FONTS.title },
-  /** неверная проверка: рамка кумачом вокруг поля — отклик на касание игрока, без движения */
-  shake: { borderWidth: 2, borderColor: C.kumach, borderRadius: R.card, padding: 4 },
-  word: { borderRadius: R.button, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, paddingVertical: 10, paddingHorizontal: 12 },
-  wordOpen: { borderColor: C.ink },
-  wordMarked: { borderColor: C.spruce, borderWidth: 2 },
-  wordText: { fontSize: S.body, color: C.ink, fontFamily: FONTS.body },
-  choice: { borderRadius: R.button, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, paddingVertical: 12, paddingHorizontal: 14 },
-  choiceOff: { backgroundColor: C.cell, borderColor: C.cell },
-  choiceText: { fontSize: S.body, color: C.ink, fontFamily: FONTS.body, lineHeight: 24 },
-  off: { color: C.inkSoft, textDecorationLine: 'line-through' },
-  pressed: { opacity: 0.8 },
-});
+const useStyles = themed((c, z) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.linen },
+    top: { padding: 16, gap: 12 },
+    bottom: { padding: 16, gap: 12, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: c.linen },
+    row: { flexDirection: 'row', gap: 10 },
+    wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+    proverbText: { fontSize: z(22), lineHeight: z(32), fontFamily: FONTS.body, color: c.ink },
+    answerBox: { minHeight: z(64), gap: 4, padding: 12, borderRadius: R.card, borderWidth: 1, borderColor: c.line, backgroundColor: c.paper },
+    slot: { width: z(48), height: z(52), borderRadius: R.tile, backgroundColor: c.cell, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: c.cell },
+    slotLocked: { borderColor: c.spruce, backgroundColor: c.paper },
+    tile: { width: z(48), height: z(52), borderRadius: R.tile, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    tileUsed: { backgroundColor: c.cell, borderColor: c.cell },
+    tileText: { fontSize: z(24), color: c.ink, fontFamily: FONTS.title },
+    /** неверная проверка: рамка кумачом вокруг поля — отклик на касание игрока, без движения */
+    shake: { borderWidth: 2, borderColor: c.kumach, borderRadius: R.card, padding: 4 },
+    word: { borderRadius: R.button, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, paddingVertical: 10, paddingHorizontal: 12 },
+    wordOpen: { borderColor: c.ink },
+    wordMarked: { borderColor: c.spruce, borderWidth: 2 },
+    wordText: { fontSize: z(S.body), color: c.ink, fontFamily: FONTS.body },
+    choice: { borderRadius: R.button, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, paddingVertical: 12, paddingHorizontal: 14 },
+    choiceOff: { backgroundColor: c.cell, borderColor: c.cell },
+    choiceText: { fontSize: z(S.body), color: c.ink, fontFamily: FONTS.body, lineHeight: z(24) },
+    off: { color: c.inkSoft, textDecorationLine: 'line-through' },
+    pressed: { opacity: 0.8 },
+  }),
+);

@@ -11,9 +11,11 @@ import { shareOrCopy } from '../state/share';
 import type { Game } from '../state/game';
 import { Button, Card, Txt } from '../ui/kit';
 import { Initial } from '../ui/Initial';
-import { C, S } from '../ui/theme';
+import { S, themed, useLook } from '../ui/theme';
 
 export function HomeScreen({ game }: { game: Game }) {
+  const styles = useStyles();
+  const look = useLook();
   const { results, today, setScreen } = game;
   const id = daily(content.calendar, today);
   const t = id ? taskById(id) : undefined;
@@ -25,7 +27,7 @@ export function HomeScreen({ game }: { game: Game }) {
       <View style={styles.title}>
         <Initial letter={T.app.initial} />
         <View style={{ flex: 1 }}>
-          <Txt title style={{ fontSize: S.hero, lineHeight: 42 }}>{T.app.name}</Txt>
+          <Txt title style={{ fontSize: look.z(S.hero), lineHeight: look.z(42) }}>{T.app.name}</Txt>
           <Txt dim>{T.app.tagline}</Txt>
         </View>
       </View>
@@ -36,11 +38,14 @@ export function HomeScreen({ game }: { game: Game }) {
             <Txt style={{ fontWeight: '600' }}>{T.home.daily(today, t.kind)}</Txt>
             {r?.done ? (
               <>
-                <Txt testID="daily-result" style={{ color: r.peeked ? C.inkSoft : C.spruce }}>{howSolved(r)}</Txt>
+                <Txt testID="daily-result" style={{ color: r.peeked ? look.c.inkSoft : look.c.spruce }}>{howSolved(r)}</Txt>
                 <Button
                   testID="daily-share"
                   label={copied ? T.home.copied : T.home.share}
-                  onPress={() => void shareOrCopy(shareText(today, t.kind, r)).then(setCopied)}
+                  onPress={() => {
+                    game.shared(id);
+                    void shareOrCopy(shareText(today, t.kind, r)).then(setCopied);
+                  }}
                 />
               </>
             ) : (
@@ -52,7 +57,7 @@ export function HomeScreen({ game }: { game: Game }) {
         )}
       </Card>
 
-      <Txt title style={{ fontSize: S.lead, lineHeight: 28 }}>{T.home.notebooks}</Txt>
+      <Txt title style={{ fontSize: look.z(S.lead), lineHeight: look.z(28) }}>{T.home.notebooks}</Txt>
       {content.notebooks.map(b => {
         // тетрадь с задачами открывается всегда: закрытые задачи видны внутри, с «Буквицей+» и роликом
         const open = b.tasks.length > 0;
@@ -88,10 +93,12 @@ export function HomeScreen({ game }: { game: Game }) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { padding: 16, gap: 12, backgroundColor: C.linen, flexGrow: 1 },
-  title: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8 },
-  row: { flexDirection: 'row', gap: 10 },
-  book: { backgroundColor: C.paper, borderRadius: 10, borderWidth: 1, borderColor: C.line, padding: 14, gap: 4 },
-  closed: { backgroundColor: C.cell, borderColor: C.cell },
-});
+const useStyles = themed((c, z) =>
+  StyleSheet.create({
+    wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 },
+    title: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8 },
+    row: { flexDirection: 'row', gap: 10 },
+    book: { backgroundColor: c.paper, borderRadius: 10, borderWidth: 1, borderColor: c.line, padding: 14, gap: 4 },
+    closed: { backgroundColor: c.cell, borderColor: c.cell },
+  }),
+);

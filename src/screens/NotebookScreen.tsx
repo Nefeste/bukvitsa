@@ -12,9 +12,10 @@ import { counts } from '../state/progress';
 import type { Game } from '../state/game';
 import { Button, Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
-import { C, R } from '../ui/theme';
+import { R, themed } from '../ui/theme';
 
 export function NotebookScreen({ game, book }: { game: Game; book: string }) {
+  const styles = useStyles();
   const money = useMoney();
   const [ready, setReady] = useState(() => rewardedReady());
   const b = content.notebooks.find(x => x.key === book);
@@ -75,11 +76,13 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { padding: 16, gap: 12, backgroundColor: C.linen, flexGrow: 1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cell: { width: 52, height: 52, borderRadius: R.tile, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  cellLocked: { backgroundColor: C.cell, borderColor: C.cell },
-  num: { color: C.inkSoft, fontFamily: FONTS.body, fontSize: 13 },
-  mark: { color: C.spruce, fontFamily: FONTS.body, fontSize: 18 },
-});
+const useStyles = themed((c, z) =>
+  StyleSheet.create({
+    wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    cell: { width: z(52), height: z(52), borderRadius: R.tile, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    cellLocked: { backgroundColor: c.cell, borderColor: c.cell },
+    num: { color: c.inkSoft, fontFamily: FONTS.body, fontSize: z(13) },
+    mark: { color: c.spruce, fontFamily: FONTS.body, fontSize: z(18) },
+  }),
+);

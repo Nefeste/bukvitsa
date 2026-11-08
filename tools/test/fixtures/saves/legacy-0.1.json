@@ -1,0 +1,4 @@
+{
+  "bukvitsa.results.v1": "{\"proverb-0001\":{\"done\":true,\"tries\":2,\"hints\":1,\"peeked\":false},\"riddle-0001\":{\"done\":true,\"tries\":0,\"hints\":2,\"peeked\":true},\"parts-0001\":{\"done\":false,\"tries\":1,\"hints\":0,\"peeked\":false}}",
+  "bukvitsa.settings.v1": "{\"lessMotion\":false,\"adsConsent\":\"yes\"}"
+}
