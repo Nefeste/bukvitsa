@@ -121,7 +121,7 @@ charter's `docs/05-rules.md` and are not repeated here. This project's own rules
   under the same `id`. Keep ≥ 365 days of calendar ahead in every release.
 - **No server, no analytics SDK, no profile** (ADR 0001 table). The ad SDK is the only
   third-party code with network access; its permissions are the project's whitelist
-  (`tools/test/permissions.json`) and nothing more.
+  (`.github/apk-permissions.txt`, checked on the tag build) and nothing more; RuStore forms — `store/forms.md`.
 - **Web build is first-class** (ADR 0007): nothing native-only in the core; purchase, ads,
   sound and storage sit behind adapters with web stubs; the Playwright scenario must stay green.
 - **Russian only** (ADR 0006): no second language in `src/i18n/`, no foreign builds.
