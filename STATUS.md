@@ -12,8 +12,8 @@
 «Удалить мои данные», оценка в RuStore, «виртуальный игрок» `tools/content/play.ts`; карточка RuStore — значок, баннер,
 семь снимков; автобэкап, тема телефона на Android, заставка без белой вспышки.
 
-**Закрытая веб-версия** `gornitsa.games/bukvitsa/test/`: `site.yml` здесь (#17) и `deploy/bukvitsa/` в
-`Nefeste/gornitsagames` (#95, слит); после них — пароль `sudo bukvitsa-password` на машине и запуск «Веб-версия для сайта».
+**Закрытая веб-версия работает** с 08.11: https://gornitsa.games/bukvitsa/test/ по паролю владельца. Обновляется
+сама: `site.yml` ночью собирает свежий `main`, если он ушёл вперёд, машина забирает сборку за 5 минут (#17, gornitsagames#95).
 
 **Что дальше:** анкеты RuStore готовы — `store/forms.md` (ветка `claude/forms`); раздел «Буквица» политики — PR сайта;
 разрешения — сверить по первой сборке тега (`RECEIVE_BOOT_COMPLETED`, см. `store/forms.md`).
