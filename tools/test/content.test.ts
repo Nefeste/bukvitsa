@@ -107,10 +107,10 @@ describe('сборка content/', () => {
     // среда без старых слов — конец пословицы (bukvitsa#6), не пословица с пропуском
     for (const [d, id] of days) if (weekday(d) === 2) expect(['old-word', 'ending']).toContain(kinds.get(id) ?? '');
   });
-  test('первая тетрадь бесплатна и в ней все пять видов', () => {
+  test('первая тетрадь бесплатна; в ней пять видов и «Тайнопись» (конец пословицы — только в задаче дня)', () => {
     const first = pack.notebooks.find(b => b.key === 'first')!;
     expect(first.free).toBe(true);
     const kinds = new Set(first.tasks.map(id => pack.tasks.find(t => t.id === id)!.kind));
-    expect([...kinds].sort()).toEqual(['extra-letter', 'old-word', 'parts', 'proverb', 'riddle']);
+    expect([...kinds].sort()).toEqual(['cipher', 'extra-letter', 'old-word', 'parts', 'proverb', 'riddle']);
   });
 });

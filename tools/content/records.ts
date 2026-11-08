@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 
 import { join } from 'node:path';
 import { parse, stringify } from 'yaml';
 
-export type Kind = 'proverb' | 'riddle' | 'extra-letter' | 'old-word' | 'parts' | 'ending';
+export type Kind = 'proverb' | 'riddle' | 'extra-letter' | 'old-word' | 'parts' | 'ending' | 'cipher';
 
 /** Папка записей ↔ приставка идентификатора. */
 export const FOLDERS: Record<Kind, { dir: string; prefix: string }> = {
@@ -14,6 +14,7 @@ export const FOLDERS: Record<Kind, { dir: string; prefix: string }> = {
   'old-word': { dir: 'words', prefix: 'word' },
   parts: { dir: 'parts', prefix: 'parts' },
   ending: { dir: 'endings', prefix: 'ending' },
+  cipher: { dir: 'ciphers', prefix: 'cipher' },
 };
 
 export interface Source {

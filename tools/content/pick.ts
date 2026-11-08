@@ -14,6 +14,8 @@ import { words } from '../../src/engine/words';
 import { mainReading, type Proverb } from './dal';
 import { bannedWord, commonness, loadPool, norm, type Pool } from './pool';
 import { idOf, nextNumber, readRecords, writeRecord, type Kind, type Rec, type Source } from './records';
+import { cipherOf, cipherProblem } from './cipher';
+import { cipherRivals, shapeIndex } from './play';
 import { endingSplit, shuffle, Xorshift } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
@@ -34,6 +36,7 @@ export const STOP = new Set(
 let FREQ = new Map<string, number>();
 let KNOWN = new Set<string>();
 let TAILS: { id: string; tail: string }[] = [];
+let SHAPES: ReturnType<typeof shapeIndex> = new Map();
 const freqOf = (w: string) => FREQ.get(norm(w)) ?? 0;
 
 function contentWords(text: string): number[] {
@@ -194,9 +197,11 @@ const PLAN = {
   /** тетрадь: сколько задач и каких видов */
   notebook: 40,
   firstMix: { proverb: 9, riddle: 8, 'extra-letter': 11, parts: 11 } as Record<string, number>,
+  /** «Тайнопись» в первой тетради (решение владельца 08.11.2026, #28) — сверх 40 */
+  firstCipher: 6,
   bookMix: ['proverb', 'extra-letter', 'parts', 'proverb'] as Kind[],
   /** пул задач дня на три года (1096 дней): пословицы — и на дни без загадок и старых слов */
-  daily: { proverb: 800, 'extra-letter': 160, parts: 160, ending: 160 } as Record<string, number>,
+  daily: { proverb: 800, 'extra-letter': 160, parts: 160, ending: 160, cipher: 160 } as Record<string, number>,
 };
 
 interface Book {
@@ -208,6 +213,7 @@ interface Book {
 function main() {
   const pool = loadPool(ROOT);
   FREQ = pool.freq;
+  SHAPES = shapeIndex([...pool.byId.values()].map(q => q.text));
   KNOWN = new Set([...pool.byId.values()].map(q => tailKey(q.text.replace(' — ', ' '))));
   TAILS = pool.allowed.flatMap(q => {
     const s = endingSplit(q.text);
@@ -264,6 +270,17 @@ function main() {
       }
       return { ...base(id), text: p.text, options };
     }
+    if (kind === 'cipher') {
+      // открытые буквы зависят от номера записи: проверка — на настоящем номере, не подошло — номер не тратится
+      const id = nextId(kind);
+      const c = cipherProblem(p.text) ? null : cipherOf(p.text, id, 1);
+      const rivals = c ? cipherRivals({ id, version: 1, kind: 'cipher', prompt: '', answer: '', text: p.text, about: '', source: '', ...c }, SHAPES) : [];
+      if (!c || rivals.length) {
+        counter.set(kind, counter.get(kind)! - 1);
+        return null;
+      }
+      return { ...base(id), text: p.text };
+    }
     if (kind === 'parts') {
       const parts = partsOf(p.text, (fnv1a(p.id) % 2 === 0 ? 3 : 4) as 3 | 4) ?? partsOf(p.text, 3);
       if (!parts) return null;
@@ -273,7 +290,9 @@ function main() {
   };
   /** Пробная проверка без расхода номера. */
   const fits = (kind: Kind, p: Proverb) =>
-    kind === 'ending'
+    kind === 'cipher'
+      ? cipherProblem(p.text) == null && cipherOf(p.text, 'probe', 1) != null
+      : kind === 'ending'
       ? endingSplit(p.text) != null && wrongEndings('probe', 1, p, TAILS, KNOWN) != null
       : kind === 'proverb' ? gapOf(p.text) != null : kind === 'parts' ? (partsOf(p.text, 3) ?? partsOf(p.text, 4)) != null : extraOf('probe', p.text) != null;
 
@@ -325,10 +344,22 @@ function main() {
     }
   }
 
+  // «Тайнопись» в первой тетради — из её разделов, сверх 40 задач
+  const firstBook = books.find(b => b.key === 'first');
+  let firstCiphers = existing.filter(r => r.kind === 'cipher' && r.notebooks?.includes('first')).length;
+  for (const p of pool.allowed.filter(q => !firstBook?.sections || firstBook.sections.includes(q.title)).sort(hashOrder('first-cipher'))) {
+    if (firstCiphers >= PLAN.firstCipher) break;
+    if (!free(p) || !fits('cipher', p)) continue;
+    if (emit(make('cipher', p, false, ['first']))) {
+      take(p);
+      firstCiphers++;
+    }
+  }
+
   // пул задач дня — сперва самые обиходные пословицы, внутри ступени — по хешу
   const tier = (p: Proverb) => Math.floor(commonness(p.text, pool.freq));
   const sorted = pool.allowed.slice().sort((a, c) => tier(c) - tier(a) || hashOrder('daily')(a, c));
-  for (const kind of ['proverb', 'extra-letter', 'parts', 'ending'] as Kind[]) {
+  for (const kind of ['proverb', 'extra-letter', 'parts', 'ending', 'cipher'] as Kind[]) {
     let have = existing.filter(r => r.kind === kind && (r.daily === 'yes' || r.daily === true)).length + made.filter(r => r.kind === kind && r.daily === 'yes').length;
     for (const p of sorted) {
       if (have >= PLAN.daily[kind]) break;
@@ -340,7 +371,7 @@ function main() {
     }
   }
   const count = (k: Kind) => made.filter(r => r.kind === k).length;
-  console.log(`новых записей: ${made.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, с лишней буквой ${count('extra-letter')}, по частям ${count('parts')}, конец пословицы ${count('ending')}`);
+  console.log(`новых записей: ${made.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, с лишней буквой ${count('extra-letter')}, по частям ${count('parts')}, конец пословицы ${count('ending')}, тайнописи ${count('cipher')}`);
 }
 
 if (import.meta.main) main();

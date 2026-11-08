@@ -10,11 +10,14 @@ import { join } from 'node:path';
 import { parse } from 'yaml';
 import { dayNumber, weekday, type Calendar } from '../../src/engine/day';
 import { tokens, words } from '../../src/engine/words';
+import { textLetters } from '../../src/engine/cipher';
 import type { Kind as TaskKind, Task } from '../../src/engine/types';
 import type { Notebook, Pack } from '../../src/content/types';
 import { loadPool } from './pool';
 import { FOLDERS, readRecords, type Rec } from './records';
 import { calendarErrors, lockErrors, type Lock } from './released';
+import { WEEK } from './calendar';
+import { cipherOf, cipherProblem } from './cipher';
 import { endingSplit, letterRow, shuffleNotSame } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
@@ -108,6 +111,15 @@ export function toTask(r: Rec, errors: string[]): Task | null {
     const shown = ws.map((x, i) => (i === wi ? changed : x));
     const prompt = tokens(r.text).map(t => (t.word ? shown[t.n] : t.text)).join('');
     return { ...base, prompt, answer: `${wi}:${r.position - 1}`, words: shown };
+  }
+  if (r.kind === 'cipher') {
+    const why = r.text ? cipherProblem(r.text) : 'нет текста';
+    const c = r.text && !why ? cipherOf(r.text, r.id, r.version) : null;
+    if (why || !c) {
+      errors.push(`${at}: тайнопись — ${why ?? 'не открыть буквы по правилу (08-game-design.md, «Буква на число»)'}`);
+      return null;
+    }
+    return { ...base, prompt: '', answer: textLetters(r.text!).join(''), code: c.code, open: c.open };
   }
   // parts
   const parts = r.parts ?? [];
@@ -208,11 +220,11 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
 
   const count = (k: string) => tasks.filter(t => t.kind === k).length;
   const draft = recs.filter(r => r.review === 'draft').length;
-  const plan = ['proverb', 'riddle', 'old-word', 'extra-letter', 'parts', 'proverb', 'riddle'];
+  const plan = WEEK;
   const offPlan = Object.entries(calendar.days).filter(([d, id]) => byId.get(id)?.kind !== plan[weekday(d)]).length;
   const endingWed = Object.entries(calendar.days).filter(([d, id]) => weekday(d) === 2 && byId.get(id)?.kind === 'ending').length;
   const report = [
-    `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}, конец пословицы ${count('ending')}`,
+    `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}, конец пословицы ${count('ending')}, тайнописи ${count('cipher')}`,
     `тетради: ${notebooks.map(b => `${b.key} ${b.tasks.length}`).join(', ')}`,
     `календарь: ${Object.keys(calendar.days).length} дней с ${calendar.from || '—'}; не по виду дня недели: ${offPlan} (из них в среду конец пословицы вместо старого слова: ${endingWed})`,
     `пословиц в источнике: ${pool.byId.size}, разрешено: ${pool.allowed.length}`,

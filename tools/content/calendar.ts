@@ -16,8 +16,8 @@ import { dateOf, dayNumber, weekday } from '../../src/engine/day';
 import { readRecords, type Kind } from './records';
 
 const ROOT = join(import.meta.dir, '..', '..');
-/** пн — пословица, вт — загадка, ср — старое слово, чт — лишняя буква, пт — по частям, сб — пословица, вс — загадка */
-export const WEEK: Kind[] = ['proverb', 'riddle', 'old-word', 'extra-letter', 'parts', 'proverb', 'riddle'];
+/** пн — пословица, вт — загадка, ср — старое слово, чт — лишняя буква, пт — по частям, сб — тайнопись (решение владельца 08.11.2026, #28), вс — загадка */
+export const WEEK: Kind[] = ['proverb', 'riddle', 'old-word', 'extra-letter', 'parts', 'cipher', 'riddle'];
 /** Чем заменить вид дня, если его задач нет: по порядку. */
 export const FALLBACK: Partial<Record<Kind, Kind[]>> = { 'old-word': ['ending', 'proverb'] };
 

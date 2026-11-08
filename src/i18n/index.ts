@@ -26,6 +26,7 @@ const KIND: Record<Kind, { name: string; lower: string; ask: string }> = {
   'old-word': { name: 'Старое слово', lower: 'старое слово', ask: 'Какое слово так толкует Даль?' },
   parts: { name: 'По частям', lower: 'по частям', ask: 'Расставьте части по порядку' },
   ending: { name: 'Конец пословицы', lower: 'конец пословицы', ask: 'Чем кончается пословица?' },
+  cipher: { name: 'Тайнопись', lower: 'тайнопись', ask: 'Одинаковые числа — одна буква' },
 };
 
 const ORDINAL = ['первой', 'второй', 'третьей', 'четвёртой', 'пятой'];
@@ -77,6 +78,11 @@ export const T = {
     slot: (n: number, c: string | null) => (c ? `Место ${n}: ${c}, убрать` : `Место ${n}: пусто`),
     word: (w: string) => `Слово «${w}»`,
     letter: (c: string) => `Буква ${c}`,
+    hintWrong: 'Убрать неверные',
+    clean: 'Все поставленные буквы верны',
+    erase: 'Стереть',
+    cell: (n: number, c: string | null) => (c ? `Число ${n}: ${c}` : `Число ${n}: пусто`),
+    key: (c: string) => `Буква ${c}`,
   },
   archive: { title: 'Архив', none: 'Прошлых задач дня пока нет — архив начнётся завтра', solved: 'решена', peeked: 'подсмотрена', open: 'не решена' },
   notebook: { done: 'Решена', solved: 'решена', peeked: 'подсмотрена', open: 'не тронута', item: (n: number) => `Задача ${n}` },

@@ -3,7 +3,8 @@
 //
 // Четыре взаимодействия (ADR 0005): ряд букв (пословица, загадка), выбор из четырёх (старое слово,
 // конец пословицы — шестой вид, решение владельца bukvitsa#6),
-// найти в строке (лишняя буква), расставить части (по частям).
+// найти в строке (лишняя буква), расставить части (по частям); пятое — буква на число («Тайнопись», ADR 0009).
+import { cipherKey, cipherSize } from './cipher';
 import { norm } from './words';
 import type { Kind, Result, Task } from './types';
 
@@ -29,6 +30,14 @@ export interface Play {
   chosen: number[];
   /** по частям: сколько первых частей поставила подсказка */
   fixed: number;
+  /** тайнопись: буква каждого числа (номер — число минус один), `null` — пусто */
+  marks: (string | null)[];
+  /** тайнопись: числа, открытые с начала и подсказкой, — их не изменить */
+  pinned: boolean[];
+  /** тайнопись: выбранное число */
+  sel: number | null;
+  /** тайнопись: «Убрать неверные» не нашла неверных */
+  clean: boolean;
   /** номер последней взятой подсказки (0–3); третья — «Показать ответ» */
   used: number;
   /** сколько подсказок взято, кроме «Показать ответ» — в итог (0–2) */
@@ -45,6 +54,7 @@ export const HINTS: Record<Kind, number[]> = {
   ending: [1, 2, 3],
   'extra-letter': [1, 3],
   parts: [2, 3],
+  cipher: [1, 2, 3],
 };
 
 /** После скольких неверных выбор из четырёх и строка считаются подсмотренными (08-game-design.md). */
@@ -58,6 +68,10 @@ const usesRow = (t: Task) => t.kind === 'proverb' || t.kind === 'riddle';
 
 function blank(task: Task): Play {
   const n = usesRow(task) ? letters(task).length : 0;
+  const m = task.kind === 'cipher' ? cipherSize(task) : 0;
+  const key = task.kind === 'cipher' ? cipherKey(task) : [];
+  const pinned = Array.from({ length: m }, (_, i) => (task.open ?? []).includes(i + 1));
+  const marks = pinned.map((on, i) => (on ? key[i] : null));
   return {
     result: { done: false, tries: 0, hints: 0, peeked: false },
     slots: Array(n).fill(null),
@@ -70,6 +84,10 @@ function blank(task: Task): Play {
     missed: [],
     chosen: [],
     fixed: 0,
+    marks,
+    pinned,
+    sel: m ? nextEmpty(task, marks, -1) : null,
+    clean: false,
     used: 0,
     taken: 0,
     shake: false,
@@ -90,6 +108,7 @@ function filled(task: Task, p: Play): Play {
   }
   if (task.kind === 'parts') return { ...p, chosen: task.answer.split(',').map(Number) };
   if (task.kind === 'extra-letter') return { ...p, open: Number(task.answer.split(':')[0]) };
+  if (task.kind === 'cipher') return { ...p, marks: cipherKey(task), pinned: p.pinned.map(() => true), sel: null };
   return p;
 }
 
@@ -177,6 +196,54 @@ export function unpickPart(p: Play, k: number): Play {
   return { ...p, chosen: p.chosen.filter((_, i) => i !== k), shake: false };
 }
 
+/** Тайнопись: число первой после клетки `after` (по тексту, по кругу) пустой клетки; пустых нет — `null`. */
+function nextEmpty(task: Task, marks: (string | null)[], after: number): number | null {
+  const code = task.code ?? [];
+  for (let k = 1; k <= code.length; k++) {
+    const c = code[(after + k + code.length) % code.length];
+    if (marks[c - 1] == null) return c;
+  }
+  return null;
+}
+
+/** Тайнопись: заполнено ли поле ключом. */
+const cipherRight = (task: Task, marks: (string | null)[]) => cipherKey(task).every((c, i) => marks[i] === c);
+
+/** Тайнопись: касание клетки выбирает её число (открытое — нет). */
+export function selectCode(p: Play, code: number): Play {
+  if (p.result.done || p.pinned[code - 1] !== false) return p;
+  return { ...p, sel: code, shake: false };
+}
+
+/** Тайнопись: буквы, которые уже не поставить (открытые с начала и подсказкой). */
+export function pinnedLetters(p: Play): Set<string> {
+  return new Set(p.marks.filter((m, i): m is string => m != null && p.pinned[i]));
+}
+
+/**
+ * Тайнопись: буква с клавиатуры — во все клетки выбранного числа; одна буква — одно число (с прежнего снимается).
+ * Выбор переходит к следующей пустой клетке; заполнено всё — проверка сразу, неверно — буквы остаются.
+ */
+export function putLetter(task: Task, p: Play, letter: string): Play {
+  const L = norm(letter);
+  if (p.result.done || p.sel == null || p.pinned[p.sel - 1] || pinnedLetters(p).has(L)) return p;
+  const marks = p.marks.map(m => (m === L ? null : m));
+  marks[p.sel - 1] = L;
+  const at = (task.code ?? []).indexOf(p.sel);
+  const sel = nextEmpty(task, marks, at) ?? p.sel;
+  const next = { ...p, marks, sel, shake: false, clean: false };
+  if (marks.some(m => m == null)) return next;
+  return cipherRight(task, marks) ? solved({ ...next, sel: null }) : wrong(next);
+}
+
+/** Тайнопись: «Стереть» — снять букву с выбранного числа. */
+export function eraseLetter(p: Play): Play {
+  if (p.result.done || p.sel == null || p.pinned[p.sel - 1] || p.marks[p.sel - 1] == null) return p;
+  const marks = p.marks.slice();
+  marks[p.sel - 1] = null;
+  return { ...p, marks, shake: false, clean: false };
+}
+
 /** Следующая подсказка вида или `null`, если все взяты. */
 export function nextHint(task: Task, p: Play): number | null {
   if (p.result.done) return null;
@@ -189,6 +256,26 @@ export function hint(task: Task, p: Play): Play {
   if (h == null) return p;
   const q = { ...p, used: h, taken: p.taken + (h === 3 ? 0 : 1), shake: false };
   if (h === 3) return peek(task, q);
+  if (task.kind === 'cipher') {
+    const key = cipherKey(task);
+    if (h === 1) {
+      // неверные буквы снимаются; неверных нет — игрок узнаёт, что поставленное верно
+      const marks = q.marks.map((m, i) => (m != null && !q.pinned[i] && m !== key[i] ? null : m));
+      const clean = marks.every((m, i) => m === q.marks[i]);
+      return { ...q, marks, clean, sel: q.sel ?? nextEmpty(task, marks, -1) };
+    }
+    // h === 2: первая по тексту пустая или неверная клетка — её буква во все клетки её числа
+    const code = task.code ?? [];
+    const at = code.findIndex(c => q.marks[c - 1] !== key[c - 1]);
+    if (at < 0) return q;
+    const c = code[at];
+    const marks = q.marks.map(m => (m === key[c - 1] ? null : m));
+    marks[c - 1] = key[c - 1];
+    const pinned = q.pinned.slice();
+    pinned[c - 1] = true;
+    const next = { ...q, marks, pinned, sel: nextEmpty(task, marks, at), clean: false };
+    return cipherRight(task, marks) ? solved({ ...next, sel: null }) : next;
+  }
   if (usesRow(task)) {
     const row = task.row ?? [];
     if (h === 1) {
