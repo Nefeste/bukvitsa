@@ -4,12 +4,12 @@
     "slug": "bukvitsa",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#ECEDE6",
     "android": {
       "package": "games.gornitsa.bukvitsa",
       "versionCode": 1,
-      "allowBackup": false,
+      "allowBackup": true,
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
         "android.permission.VIBRATE",
@@ -45,6 +45,7 @@
           "scheme": "gornitsabukvitsapay"
         }
       ],
+      "./plugins/with-backup",
       [
         "expo-build-properties",
         {
@@ -54,6 +55,7 @@
         }
       ],
       "expo-font",
+      "./plugins/with-splash-window",
       [
         "expo-splash-screen",
         {
