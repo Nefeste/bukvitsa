@@ -24,7 +24,9 @@ export type Screen =
   /** экран согласия на персональную рекламу — перед первым роликом; ответ — и дальше `next` */
   | { name: 'consent'; next: Screen }
   /** короткий экран «Реклама» перед межстраничным роликом, потом `next` */
-  | { name: 'ad'; next: Screen };
+  | { name: 'ad'; next: Screen }
+  /** «Сообщить об ошибке»: из настроек или из «Откуда это» с номером задачи; `back` — куда вернуться */
+  | { name: 'report'; task: string | null; screen: string; back: Screen };
 
 export function useGame() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });

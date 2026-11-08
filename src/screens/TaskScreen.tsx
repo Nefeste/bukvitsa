@@ -65,7 +65,7 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.top}>
         <Header title={T.kind[task.kind].name} onBack={back} back={T.task.back} />
-        {play.result.done ? <Source task={task} play={play} flow={flow} onShare={() => game.shared(id)} /> : <Question task={task} play={play} setPlay={setPlay} />}
+        {play.result.done ? <Source task={task} play={play} flow={flow} onShare={() => game.shared(id)} onReport={() => setScreen({ name: 'report', task: `${task.id} (${task.version})`, screen: `task ${flow.from}`, back: { name: 'task', flow, id } })} /> : <Question task={task} play={play} setPlay={setPlay} />}
       </ScrollView>
       <View style={styles.bottom}>
         {play.result.done ? (
@@ -221,7 +221,7 @@ function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: 
 }
 
 /** «Откуда это»: «Верно» или «Подсмотрена», полный текст, источник, строка о значении. */
-function Source({ task, play, flow, onShare }: { task: Task; play: Play; flow: Flow; onShare: () => void }) {
+function Source({ task, play, flow, onShare, onReport }: { task: Task; play: Play; flow: Flow; onShare: () => void; onReport: () => void }) {
   const styles = useStyles();
   const look = useLook();
   const r = play.result;
@@ -237,6 +237,7 @@ function Source({ task, play, flow, onShare }: { task: Task; play: Play; flow: F
         <Txt dim>{task.source}</Txt>
         <Txt>{task.about}</Txt>
       </Card>
+      <Button testID="report-task" kind="ghost" label={T.report.fromTask} onPress={onReport} />
       {flow.from === 'daily' ? (
         <>
           <Txt dim>{howSolved(r)}</Txt>
