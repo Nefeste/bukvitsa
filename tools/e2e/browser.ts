@@ -120,6 +120,17 @@ try {
   await tap(page, 'share');
   const shared = await page.evaluate(() => navigator.clipboard.readText());
   check(shared.startsWith('Буквица · 1 декабря') && shared.includes('со второй попытки') && !shared.includes(d1.answer), '«Поделиться»: текст без условия и ответа, со второй попытки');
+  // «Сообщить об ошибке» из «Откуда это»: в отчёте — номер задачи и версия записи, текст игрока первым; «Назад» — к задаче
+  await tap(page, 'report-task');
+  await page.getByTestId('report-what').fill('опечатка в задаче');
+  const report = (await page.getByTestId('report-text').textContent()) ?? '';
+  check(report.startsWith('Что не такопечатка в задаче') || report.startsWith('Что не так\nопечатка в задаче'), 'отчёт: текст игрока первым');
+  check(report.includes(`Задача: ${d1.id} (${d1.version})`) && report.includes('Версия: 0.') && report.includes('сбоев не было'), 'отчёт: задача с версией записи, версия игры, журнал сбоев пуст');
+  await snap(page, 'report');
+  await tap(page, 'report-send');
+  check((await page.evaluate(() => navigator.clipboard.readText())).includes(`Задача: ${d1.id}`), 'отчёт в браузере — в буфер обмена целиком');
+  await tap(page, 'back');
+  await page.getByTestId('source').waitFor();
   await tap(page, 'home');
   check((await page.getByTestId('daily-result').textContent())?.includes('со второй попытки') === true, 'главная: задача дня решена');
 
@@ -224,6 +235,9 @@ try {
 
   await tap(page, 'settings');
   await tap(page, 'motion-on');
+  await tap(page, 'report');
+  check((await page.getByTestId('report-text').textContent())?.includes('Экран: settings') === true, 'отчёт из настроек: без задачи, экран — настройки');
+  await tap(page, 'back');
   await tap(page, 'theme-dark');
   await tap(page, 'bigger-on');
   await snap(page, 'settings-dark');
