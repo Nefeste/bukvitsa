@@ -78,6 +78,7 @@ bun tools/content/pick.ts           # draft records from the downloaded Dahl tex
 bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years 3 [--draft]   # append the daily calendar (never edit released dates)
 bun tools/content/fetch.ts          # download missing Dahl sections from Wikisource (own User-Agent, 4 s apart)
 bun tools/content/release.ts vX.Y.Z # store release only: released.json, released-lock.json (task hashes), released calendar dates
+bun tools/content/sverka.ts         # owner's checklist for the release: first notebook + first 70 calendar days → dist/sverka.md
 bun tools/content/play.ts           # "virtual player": ambiguous letter rows, extra letters, options, parts → dist/play.md
 npx expo start                      # dev server
 npm run lint                        # zero warnings; no Date.now / new Date / Math.random in src/engine
