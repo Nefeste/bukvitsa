@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "main": "index.ts",
   "private": true,
-  "description": "Буквица — словесные задачи на русском: пословицы Даля с пропущенным словом, лишней буквой и в разбивку",
+  "description": "Складно — словесные задачи на русском: пословицы Даля с пропущенным словом, лишней буквой и в разбивку",
   "scripts": {
     "start": "bun tools/content/build.ts && expo start",
     "android": "expo run:android",

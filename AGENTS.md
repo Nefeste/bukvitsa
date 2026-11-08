@@ -15,7 +15,7 @@ the charter, replace it with a link or report the contradiction to the owner.
 
 ## The project
 
-«Буквица» (`bukvitsa`): Russian-language word puzzles for RuStore — a proverb with a missing
+«Буквица» (`bukvitsa`; the store name is «Складно» since the owner's decision of 08.11.2026, #2 — internal names stay `bukvitsa`): Russian-language word puzzles for RuStore — a proverb with a missing
 word, a riddle, a proverb with an extra letter, an old word from Dahl's dictionary, a proverb
 in shuffled parts. Content comes from public-domain editions (Dahl 1879/1880, Sadovnikov 1876).
 One daily puzzle shared by everyone, thematic notebooks, free hints, no timers, no server.

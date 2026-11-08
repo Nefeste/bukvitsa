@@ -1,5 +1,5 @@
 // Значок магазина и баннер RuStore — кодом (ADR устава 0023, правило 3), как значок приложения (tools/art/icon.ts):
-// буквица «Б» кумачом в рамке льняной нити на бумаге; на баннере за ней — «уквица» шрифтом Kurale, строка о игре
+// буквица «С» кумачом в рамке льняной нити на бумаге; на баннере за ней — «кладно» шрифтом Kurale, строка о игре
 // шрифтом Onest и полоса-рушник. Шрифты — те же файлы, что в игре (SIL OFL 1.1). Цвета — токены студии.
 //
 //   bun tools/store/graphics.ts   — store/graphics/icon-512.png, feature-1024x500.png (их же берёт tools/store/shots.ts)
@@ -16,7 +16,7 @@ const FONTS = {
   Onest: 'node_modules/@expo-google-fonts/onest/400Regular/Onest_400Regular.ttf',
 };
 
-/** Баннер 1024 × 500: лён, буквица слева, «уквица» и строка о игре, полоса-рушник по низу. */
+/** Баннер 1024 × 500: лён, буквица слева, «кладно» и строка о игре, полоса-рушник по низу. */
 export function featureSvg(): string {
   const w = 1024;
   const h = 500;
@@ -33,7 +33,7 @@ export function featureSvg(): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <rect width="${w}" height="${h}" fill="${C.linen}"/>
 ${icon}
-<text x="${x + s + 18}" y="${y + s * 0.62}" font-family="Kurale" font-size="${s * 0.5}" fill="${C.ink}">уквица</text>
+<text x="${x + s + 18}" y="${y + s * 0.62}" font-family="Kurale" font-size="${s * 0.5}" fill="${C.ink}">кладно</text>
 <text x="${x + s + 26}" y="${y + s * 0.62 + 58}" font-family="Onest" font-size="32" fill="${C.inkSoft}">пословицы, загадки</text>
 <text x="${x + s + 26}" y="${y + s * 0.62 + 100}" font-family="Onest" font-size="32" fill="${C.inkSoft}">и старые слова по Далю</text>
 <rect x="0" y="${h - 58}" width="${w}" height="2" fill="${C.line}"/>

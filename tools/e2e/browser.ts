@@ -119,7 +119,7 @@ try {
   check((await page.getByTestId('source').textContent())?.includes(d1.about.slice(0, 20)) === true, '«Откуда это»: полный текст, источник, строка о значении');
   await tap(page, 'share');
   const shared = await page.evaluate(() => navigator.clipboard.readText());
-  check(shared.startsWith('Буквица · 1 декабря') && shared.includes('со второй попытки') && !shared.includes(d1.answer), '«Поделиться»: текст без условия и ответа, со второй попытки');
+  check(shared.startsWith('Складно · 1 декабря') && shared.includes('со второй попытки') && !shared.includes(d1.answer), '«Поделиться»: текст без условия и ответа, со второй попытки');
   // «Сообщить об ошибке» из «Откуда это»: в отчёте — номер задачи и версия записи, текст игрока первым; «Назад» — к задаче
   await tap(page, 'report-task');
   await page.getByTestId('report-what').fill('опечатка в задаче');

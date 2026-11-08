@@ -1,5 +1,5 @@
-// Значок и заставка «Буквицы» — рисунок кодом (ADR устава 0023, правило 3: рисунок — скрипт с паспортом).
-// Буквица «Б» шрифтом Kurale (OFL, как в игре) кумачом на бумаге, уголки — льняная нить, как у src/ui/Initial.tsx.
+// Значок и заставка «Складно» (до 08.11.2026 — «Буквица») — рисунок кодом (ADR устава 0023, правило 3: рисунок — скрипт с паспортом).
+// Буквица «С» («Складно», решение владельца #2) шрифтом Kurale (OFL, как в игре) кумачом на бумаге, уголки — льняная нить, как у src/ui/Initial.tsx.
 // Цвета — токены студии (src/ui/theme.ts). Рисует Chromium без окна (Playwright); паспорт — assets/LICENSES.md.
 //
 //   bun tools/art/icon.ts      — assets/icon.png, assets/adaptive-icon.png, assets/splash-icon.png и паспорт
@@ -29,7 +29,7 @@ export function svg(size: number, scale: number, background: string | null, fram
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
 ${background ? `<rect width="${size}" height="${size}" fill="${background}"/>` : ''}
 ${frame ? `<rect x="${o}" y="${o}" width="${s}" height="${s}" rx="${s * 0.1}" fill="${C.paper}" stroke="${C.line}" stroke-width="${w * 0.6}"/>${corners}` : ''}
-<text x="${size / 2}" y="${size / 2}" dy="0.35em" text-anchor="middle" font-family="Kurale" font-size="${s * 0.66}" fill="${C.kumach}">Б</text>
+<text x="${size / 2}" y="${size / 2}" dy="0.35em" text-anchor="middle" font-family="Kurale" font-size="${s * 0.66}" fill="${C.kumach}">С</text>
 </svg>`;
 }
 
@@ -64,7 +64,7 @@ async function main() {
   }
   writeFileSync(
     join(ROOT, 'assets', 'LICENSES.md'),
-    `# Паспорт картинок «Буквицы»
+    `# Паспорт картинок «Складно»
 
 Сделано скриптом \`bun tools/art/icon.ts\` (ADR устава 0023, правило 3) — не править руками. Буква — шрифт Kurale
 (SIL OFL 1.1, пакет \`@expo-google-fonts/kurale\`, тот же, что в игре), цвета — токены студии (\`src/ui/theme.ts\`).
@@ -74,6 +74,9 @@ async function main() {
 | Файл | Размер | SHA-256 |
 |---|---|---|
 ${lines.join('\n')}
+
+Звуки \`assets/sounds/right.wav\`, \`hint.wav\` — синтез своим кодом: \`bun tools/sound/make.ts\` (\`tools/sound/synth.ts\`);
+байты сверяет \`tools/test/sound.test.ts\`.
 `,
   );
   console.log(lines.join('\n'));

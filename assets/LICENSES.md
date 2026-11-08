@@ -1,4 +1,4 @@
-# Паспорт картинок «Буквицы»
+# Паспорт картинок «Складно»
 
 Сделано скриптом `bun tools/art/icon.ts` (ADR устава 0023, правило 3) — не править руками. Буква — шрифт Kurale
 (SIL OFL 1.1, пакет `@expo-google-fonts/kurale`, тот же, что в игре), цвета — токены студии (`src/ui/theme.ts`).
@@ -7,7 +7,9 @@
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `assets/icon.png` | 1024 × 1024 | `0e9c496ad26d1c1261d1a97f8a85fd7f10df54e892272e1e3e195c19e38b8f5e` |
-| `assets/adaptive-icon.png` | 1024 × 1024 | `d43b87145b9b94e36d3bb8cc047d6b06eaafa4d74a90766e7873a81139b3005e` |
-| `assets/sounds/right.wav`, `hint.wav` | звуки — синтез своим кодом, `bun tools/sound/make.ts` (`tools/sound/synth.ts`); байты сверяет `tools/test/sound.test.ts` | — |
-| `assets/splash-icon.png` | 512 × 512 | `e8ffd95420b44efbb143dfbc35a61f1a1ef32ab2c3a2590740d27c688eea1f74` |
+| `assets/icon.png` | 1024 × 1024 | `6601321db988628dd72daf2805b1e31b1624535feb48133a203f94568def6d9e` |
+| `assets/adaptive-icon.png` | 1024 × 1024 | `9fe5dc128180c39cd34622447e11639d3f029d4e6cf0e1df20efe56eee526ee1` |
+| `assets/splash-icon.png` | 512 × 512 | `078243132f98d215723112ddb466f5dc847f751b6a0309c40a4f64b37cde3383` |
+
+Звуки `assets/sounds/right.wav`, `hint.wav` — синтез своим кодом: `bun tools/sound/make.ts` (`tools/sound/synth.ts`);
+байты сверяет `tools/test/sound.test.ts`.
