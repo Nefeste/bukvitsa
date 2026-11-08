@@ -133,7 +133,7 @@ try {
 
   // первая тетрадь: по задаче каждого вида
   const first = PACK.notebooks.find(b => b.key === 'first')!;
-  check((await page.getByTestId('notebook-labor').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('notebook-labor').textContent())?.includes('В следующих версиях') === true, 'тетради, кроме первой, — «В следующих версиях»');
+  check((await page.getByTestId('notebook-riddles-nature').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('notebook-riddles-nature').textContent())?.includes('В следующих версиях') === true, 'пустая тетрадь — «В следующих версиях»');
   await tap(page, 'notebook-first');
   const kinds = ['proverb', 'riddle', 'extra-letter', 'parts', 'old-word'] as const;
   for (const kind of kinds) {
@@ -155,6 +155,53 @@ try {
   }
   await snap(page, 'notebook');
   check((await page.getByTestId('notebook-progress').textContent())?.includes('4 из') === true && (await page.getByTestId('notebook-progress').textContent())?.includes('1 подсмотрены') === true, 'тетрадь: 4 решены, 1 подсмотрена');
+  await tap(page, 'back');
+
+  // деньги (specs/2026-10-money.md): ролик по желанию открывает десять задач закрытой тетради; перед первым
+  // роликом — экран согласия; межстраничный — только между задачами тетради, со второго дня, если пора
+  const labor = PACK.notebooks.find(b => b.key === 'labor')!;
+  const ads = () => page.evaluate(() => (globalThis as unknown as { __bukvitsaAds?: { shown: string[]; personal: boolean | null } }).__bukvitsaAds ?? { shown: [], personal: null });
+  await tap(page, 'notebook-labor');
+  check((await page.getByTestId('cell-0').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('open-plus').count()) === 1, 'закрытая тетрадь: задачи закрыты, «Открыть в „Буквице+“»');
+  await tap(page, 'tens');
+  await page.getByTestId('consent').waitFor();
+  await snap(page, 'consent');
+  await tap(page, 'consent-no');
+  await tap(page, 'tens');
+  await page.getByTestId('notebook-opened').filter({ hasText: 'Открыто 10' }).waitFor();
+  check((await page.getByTestId('cell-9').getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('cell-10').getAttribute('aria-disabled')) === 'true', 'ролик досмотрен: открыты задачи 1–10, одиннадцатая закрыта');
+  check((await ads()).shown.includes('rewarded') && (await ads()).personal === false, 'ролик по желанию показан; реклама — обычная, по ответу на экране согласия');
+  await snap(page, 'notebook-tens');
+  // межстраничный: решено двенадцать задач тетрадей, второй день, три задачи с прошлого ролика
+  await page.evaluate(() => {
+    const k = 'bukvitsa.money.v1';
+    const m = JSON.parse(localStorage.getItem(k) ?? '{}');
+    m.counters = { installDay: '2026-12-01', solved: 12, sinceAd: 2, lastAdAt: 0 };
+    localStorage.setItem(k, JSON.stringify(m));
+  });
+  await page.goto(`http://localhost:${server.port}/?date=${DAY3}`);
+  await tap(page, 'notebook-labor');
+  // задача из открытых, которой нет в первой тетради (образец proverb-0001 стоит в двух тетрадях — он уже решён)
+  const li = labor.tasks.findIndex((id, i) => i < 10 && !first.tasks.includes(id));
+  await tap(page, `cell-${li}`);
+  await page.getByTestId('question').or(page.getByTestId('option-0')).first().waitFor();
+  await solve(page, task(labor.tasks[li]));
+  await tap(page, 'more');
+  await page.getByTestId('ad-note').waitFor();
+  await snap(page, 'ad-note');
+  await page.getByTestId('question').or(page.getByTestId('option-0')).first().waitFor();
+  check((await ads()).shown.filter(x => x === 'interstitial').length === 1, 'межстраничный: после «Ещё», с экраном «Реклама», и сразу следующая задача');
+  await tap(page, 'back');
+  await tap(page, 'back');
+  // «Буквица+»: покупка в тестовом магазине — рекламы нет, все тетради открыты
+  await tap(page, 'plus-home');
+  await page.getByTestId('plus-price').filter({ hasText: '249' }).waitFor();
+  await snap(page, 'plus');
+  await tap(page, 'plus-buy');
+  await page.getByTestId('plus-thanks').waitFor();
+  await tap(page, 'back');
+  await tap(page, 'notebook-labor');
+  check((await page.getByTestId('cell-39').getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('tens').count()) === 0, '«Буквица+»: вся тетрадь открыта, ролика нет');
   await tap(page, 'back');
 
   await tap(page, 'settings');

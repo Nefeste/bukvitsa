@@ -1,10 +1,11 @@
 // Главная (08-game-design.md, «Игровой цикл»): сверху задача дня, ниже тетради, внизу «Архив»,
-// «Настройки», «Об игре». «Буквица+» появится с деньгами (0.5).
+// «Настройки», «Об игре»; «Буквица+» — одно из трёх мест, где игра говорит о покупке.
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { daily } from '../engine';
 import { content, task as taskById } from '../content';
 import { T, howSolved, shareText } from '../i18n';
+import { useMoney } from '../money';
 import { counts } from '../state/progress';
 import { shareOrCopy } from '../state/share';
 import type { Game } from '../state/game';
@@ -18,6 +19,7 @@ export function HomeScreen({ game }: { game: Game }) {
   const t = id ? taskById(id) : undefined;
   const r = id ? results[id] : undefined;
   const [copied, setCopied] = useState(false);
+  const money = useMoney();
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.title}>
@@ -52,7 +54,8 @@ export function HomeScreen({ game }: { game: Game }) {
 
       <Txt title style={{ fontSize: S.lead, lineHeight: 28 }}>{T.home.notebooks}</Txt>
       {content.notebooks.map(b => {
-        const open = b.free && b.tasks.length > 0;
+        // тетрадь с задачами открывается всегда: закрытые задачи видны внутри, с «Буквицей+» и роликом
+        const open = b.tasks.length > 0;
         const c = counts(results, b.tasks);
         return (
           <Pressable key={b.key} testID={`notebook-${b.key}`} disabled={!open} onPress={() => setScreen({ name: 'notebook', key: b.key })} style={({ pressed }) => [styles.book, !open && styles.closed, pressed && { opacity: 0.8 }]}>
@@ -63,6 +66,11 @@ export function HomeScreen({ game }: { game: Game }) {
         );
       })}
 
+      {money.plus ? (
+        <Txt dim testID="plus-home">{T.money.thanks}</Txt>
+      ) : (
+        <Button testID="plus-home" kind="ghost" label={T.money.plusHome} onPress={() => setScreen({ name: 'plus' })} />
+      )}
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
           <Button testID="archive" kind="ghost" label={T.home.archive} onPress={() => setScreen({ name: 'archive' })} />

@@ -20,8 +20,14 @@ export function SettingsScreen({ game }: { game: Game }) {
         <Txt style={{ fontWeight: '600' }}>{T.settings.motion}</Txt>
         <Txt dim>{T.settings.motionAbout}</Txt>
         {opts.map(o => (
-          <Button key={o.id} testID={`motion-${o.id}`} kind={v === o.value ? 'primary' : 'ghost'} label={o.label} onPress={() => game.setSettings(o.value === undefined ? {} : { lessMotion: o.value })} />
+          <Button key={o.id} testID={`motion-${o.id}`} kind={v === o.value ? 'primary' : 'ghost'} label={o.label} onPress={() => game.setSettings({ ...game.settings, lessMotion: o.value })} />
         ))}
+      </Card>
+      <Card>
+        <Txt style={{ fontWeight: '600' }}>{T.settings.ads}</Txt>
+        <Txt dim>{T.settings.adsAbout}</Txt>
+        <Button testID="ads-yes" kind={game.settings.adsConsent === 'yes' ? 'primary' : 'ghost'} label={T.money.consentYes} onPress={() => game.setSettings({ ...game.settings, adsConsent: 'yes' })} />
+        <Button testID="ads-no" kind={game.settings.adsConsent === 'no' ? 'primary' : 'ghost'} label={T.money.consentNo} onPress={() => game.setSettings({ ...game.settings, adsConsent: 'no' })} />
       </Card>
     </ScrollView>
   );

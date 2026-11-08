@@ -148,6 +148,21 @@ Expo SDK 57, React Native, TypeScript — как у соседей (ADR студ
 - **Что взято у соседей:** каркас Expo SDK 57, шрифты, токены, кнопка и карточка, «меньше движения», подпись релиза и
   релиз без сети — из «Наготове» (копии с пометкой источника); CI — из `gornitsa-kit`.
 
+## Что сделано дальше (08.11.2026, PR #11)
+
+- **Шестой вид «Конец пословицы»** (решение владельца #6): `ending` в `types.ts` и `play.ts` (выбор из четырёх,
+  подсказка «Открыть первое слово»), `endingSplit` и неверные концы в `tools/content/shuffle.ts` и `pick.ts`, записи
+  `content/endings/`, в календаре — среда вместо старого слова (`FALLBACK` в `calendar.ts`).
+- **Деньги** (specs/2026-10-money.md): правила в движке — `src/engine/money.ts` (`adAllowed`, `canOpen`, счётчики);
+  `src/money/` по образцу «Нард» (nardy @ 1d2bdff): порты `types.ts`, Яндекс Мобильная Реклама 8.6.0 (`adsSdk.ts`,
+  подделка для браузера — `adsSdk.web.ts`), RuStore Pay из `@gornitsa/kit` v1.1.0 (`billing.ts`, `rustoreRules.ts`,
+  тестовый магазин — `billing.web.ts`), `index.ts` — что зовут экраны. Экраны: «Буквица+», экран согласия, короткий
+  экран «Реклама» перед роликом, закрытые задачи в тетради, «Персональная реклама» в настройках.
+- **Сеть в релизе:** `plugins/with-release-no-internet.js` убран — рекламе нужна сеть (решение владельца #4);
+  разрешения — белый список `.github/apk-permissions.txt`: INTERNET, ACCESS_NETWORK_STATE, AD_ID. Номера рекламных блоков
+  (`EXPO_PUBLIC_YANDEX_ADS_INTERSTITIAL`, `_REWARDED`) и приложения в RuStore (`EXPO_PUBLIC_RUSTORE_APP_ID`) — переменные
+  сборки, их ставит владелец; без них — демонстрационные блоки Яндекса и «покупки подключаются».
+
 ## Графика (ADR 0023 устава)
 
 Правила — устав: [«Графика»](https://github.com/Nefeste/gornitsa/blob/main/docs/05-rules.md#графика),

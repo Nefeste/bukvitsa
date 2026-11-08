@@ -19,6 +19,7 @@
     "@expo-google-fonts/kurale": "^0.4.2",
     "@expo-google-fonts/onest": "^0.4.2",
     "@expo/metro-runtime": "~57.0.16",
+    "@gornitsa/kit": "github:Nefeste/gornitsa-kit#v1.1.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.24",
     "expo-build-properties": "~57.0.22",
@@ -29,7 +30,8 @@
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
-    "react-native-web": "~0.21.0"
+    "react-native-web": "~0.21.0",
+    "yandex-mobile-ads": "^8.6.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

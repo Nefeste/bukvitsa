@@ -20,6 +20,7 @@ import {
 } from '../engine';
 import { content, task as taskById } from '../content';
 import { T, howSolved, shareText } from '../i18n';
+import { interstitialDue, notebookTaskSolved } from '../money';
 import { nextOpen, resultOf } from '../state/progress';
 import { shareOrCopy } from '../state/share';
 import type { Flow, Game } from '../state/game';
@@ -34,8 +35,12 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
   // итог пишется, когда задача решена или подсмотрена; решённая заново подсмотренная — тоже
   useEffect(() => {
     const prev = results[id];
-    if (play.result.done && (!prev?.done || (prev.peeked && !play.result.peeked))) record(id, play.result);
-  }, [play.result, id, record, results]);
+    if (play.result.done && (!prev?.done || (prev.peeked && !play.result.peeked))) {
+      record(id, play.result);
+      // реклама считает только задачи тетрадей; задача дня её не двигает (08-game-design.md, «Реклама»)
+      if (flow.from === 'notebook' && !prev?.done) notebookTaskSolved();
+    }
+  }, [play.result, id, record, results, flow.from]);
   const h = nextHint(task, play);
   const hintLabel = (n: number) =>
     n === 2 && task.kind === 'parts' ? T.task.hintPart : n === 2 && task.kind === 'ending' ? T.task.hintFirstWord : n === 1 && task.kind === 'extra-letter' ? T.task.hintWord : T.task.hint[n];
@@ -44,7 +49,14 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
     if (flow.from !== 'notebook') return;
     const ids = content.notebooks.find(b => b.key === flow.key)?.tasks ?? [];
     const next = nextOpen({ ...results, [id]: play.result }, ids, id);
-    setScreen(next ? { name: 'task', flow, id: next } : { name: 'notebook', key: flow.key });
+    const to = next ? { name: 'task' as const, flow, id: next } : { name: 'notebook' as const, key: flow.key };
+    // межстраничный ролик — только здесь, между задачами тетради, и только если движок разрешил
+    if (interstitialDue('between', game.today)) {
+      const ad = { name: 'ad' as const, next: to };
+      setScreen(game.settings.adsConsent ? ad : { name: 'consent', next: ad });
+      return;
+    }
+    setScreen(to);
   };
 
   return (
