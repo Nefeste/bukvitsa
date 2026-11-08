@@ -5,12 +5,14 @@ import { Linking, ScrollView, StyleSheet } from 'react-native';
 import { T } from '../i18n';
 import type { Game, Screen } from '../state/game';
 import { Button, Card, Txt } from '../ui/kit';
-import { C, S } from '../ui/theme';
+import { S, themed, useLook } from '../ui/theme';
 
 /** Раздел «Буквицы» в политике студии (store/site/privacy*, сайт gornitsa.games). */
 const PRIVACY = 'https://gornitsa.games/privacy.html#bukvitsa';
 
 export function ConsentScreen({ game, next }: { game: Game; next: Screen }) {
+  const styles = useStyles();
+  const look = useLook();
   const answer = (v: 'yes' | 'no') => {
     game.setSettings({ ...game.settings, adsConsent: v });
     game.setScreen(next);
@@ -18,7 +20,7 @@ export function ConsentScreen({ game, next }: { game: Game; next: Screen }) {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Card testID="consent">
-        <Txt title style={{ fontSize: S.lead, lineHeight: 28 }}>{T.money.consentTitle}</Txt>
+        <Txt title style={{ fontSize: look.z(S.lead), lineHeight: look.z(28) }}>{T.money.consentTitle}</Txt>
         <Txt>{T.money.consentAsk}</Txt>
         <Button testID="consent-yes" kind="ghost" label={T.money.consentYes} onPress={() => answer('yes')} />
         <Button testID="consent-no" kind="ghost" label={T.money.consentNo} onPress={() => answer('no')} />
@@ -29,4 +31,6 @@ export function ConsentScreen({ game, next }: { game: Game; next: Screen }) {
   );
 }
 
-const styles = StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: C.linen, flexGrow: 1, justifyContent: 'center' } });
+const useStyles = themed((c, z) =>
+  StyleSheet.create({ wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1, justifyContent: 'center' } }),
+);

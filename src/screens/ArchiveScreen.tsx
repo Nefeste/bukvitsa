@@ -8,9 +8,10 @@ import { T, monthName } from '../i18n';
 import type { Game } from '../state/game';
 import { Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
-import { C, R } from '../ui/theme';
+import { R, themed } from '../ui/theme';
 
 export function ArchiveScreen({ game }: { game: Game }) {
+  const styles = useStyles();
   const dates = archive(content.calendar, game.today);
   const months = new Map<string, string[]>();
   for (const d of dates) months.set(d.slice(0, 7), [...(months.get(d.slice(0, 7)) ?? []), d]);
@@ -46,10 +47,12 @@ export function ArchiveScreen({ game }: { game: Game }) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { padding: 16, gap: 14, backgroundColor: C.linen, flexGrow: 1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  day: { width: 48, height: 52, borderRadius: R.tile, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  num: { color: C.inkSoft, fontFamily: FONTS.body, fontSize: 13 },
-  mark: { color: C.spruce, fontFamily: FONTS.body, fontSize: 16 },
-});
+const useStyles = themed((c, z) =>
+  StyleSheet.create({
+    wrap: { padding: 16, gap: 14, backgroundColor: c.linen, flexGrow: 1 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    day: { width: z(48), height: z(52), borderRadius: R.tile, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    num: { color: c.inkSoft, fontFamily: FONTS.body, fontSize: z(13) },
+    mark: { color: c.spruce, fontFamily: FONTS.body, fontSize: z(16) },
+  }),
+);

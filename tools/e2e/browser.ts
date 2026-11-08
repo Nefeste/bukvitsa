@@ -1,7 +1,7 @@
 // Сценарий в браузере (06-testing.md, §5): веб-сборка, настоящие нажатия, снимки в tools/e2e/out/.
 // Главная → задача дня → «Откуда это» и «Поделиться» → архив → первая тетрадь: по задаче каждого из
-// пяти видов (с подсказкой, с ошибкой, подсмотренная) → закрытая тетрадь → настройки → об игре →
-// перезагрузка: прогресс на месте. Ответы сценарий берёт из набора — экран должен показывать ту же
+// пяти видов (с подсказкой, с ошибкой, подсмотренная) → закрытая тетрадь → настройки (тёмная тема, «ещё
+// крупнее») → об игре → перезагрузка: прогресс и настройки на месте → «Удалить мои данные». Ответы сценарий берёт из набора — экран должен показывать ту же
 // задачу, что собрала сборка. Ошибка в консоли — провал.
 //
 //   EXPO_OFFLINE=1 npm run export:web && bun tools/e2e/browser.ts
@@ -206,14 +206,37 @@ try {
 
   await tap(page, 'settings');
   await tap(page, 'motion-on');
+  await tap(page, 'theme-dark');
+  await tap(page, 'bigger-on');
+  await snap(page, 'settings-dark');
   await tap(page, 'back');
+  await snap(page, 'home-dark');
   await tap(page, 'about');
-  check((await page.getByTestId('about-version').textContent())?.includes('0.') === true, '«Об игре»: версия');
+  const version = page.getByTestId('about-version');
+  check((await version.textContent())?.includes('0.') === true, '«Об игре»: версия');
+  const look = () => version.evaluate(e => [getComputedStyle(e).color, getComputedStyle(e).fontSize]);
+  check(JSON.stringify(await look()) === JSON.stringify(['rgb(233, 232, 224)', '21px']), 'тёмная тема и «ещё крупнее»: светлые чернила, текст 17 → 21 px');
   await snap(page, 'about');
 
   await page.goto(`http://localhost:${server.port}/?date=${DAY1}`);
   await page.getByTestId('daily-result').waitFor();
   check(true, 'после перезагрузки задача дня решена');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('bukvitsa.save') ?? 'null'));
+  check(saved?.schema === 1 && saved.events.some((e: { t: string }) => e.t === 'shared') && saved.settings.theme === 'dark', 'сохранение — схема 1: события с «Поделиться», настройки');
+  await tap(page, 'about');
+  check(JSON.stringify(await look()) === JSON.stringify(['rgb(233, 232, 224)', '21px']), 'тема и размер пережили перезагрузку');
+  await tap(page, 'back');
+
+  // «Удалить мои данные» — с подтверждением на экране; после — задача дня снова не решена
+  await tap(page, 'settings');
+  await tap(page, 'wipe');
+  await tap(page, 'wipe-no');
+  await tap(page, 'wipe');
+  await tap(page, 'wipe-yes');
+  await tap(page, 'theme-system');
+  await tap(page, 'back');
+  await page.getByTestId('daily-solve').waitFor();
+  check((await page.getByTestId('daily-result').count()) === 0, '«Удалить мои данные»: прогресс с нуля');
 
   if (errors.length) throw new Error(`ошибки в консоли:\n${errors.join('\n')}`);
   console.log('Сценарий пройден.');

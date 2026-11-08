@@ -1,7 +1,7 @@
 // из shelter: src/ui/kit.tsx @ fa04538 — текст, кнопка, карточка на токенах студии (src/ui/theme.ts).
 import React from 'react';
 import { Pressable, type StyleProp, StyleSheet, Text, type TextStyle, View, type ViewStyle } from 'react-native';
-import { C, R, S } from './theme';
+import { R, S, themed, useLook } from './theme';
 import { FONTS } from './fonts';
 
 /**
@@ -17,10 +17,12 @@ function face(style: TextStyle | undefined, title: boolean): TextStyle {
 }
 
 export function Txt({ children, style, dim, title, testID }: { children: React.ReactNode; style?: TextStyle; dim?: boolean; title?: boolean; testID?: string }) {
+  const styles = useStyles();
   return <Text testID={testID} style={[styles.text, dim && styles.dim, title && styles.title, style, face(style, !!title)]}>{children}</Text>;
 }
 
 export function Button({ label, onPress, kind = 'primary', disabled, testID }: { label: string; onPress: () => void; kind?: 'primary' | 'ghost'; disabled?: boolean; testID?: string }) {
+  const styles = useStyles();
   return (
     <Pressable
       testID={testID}
@@ -34,6 +36,7 @@ export function Button({ label, onPress, kind = 'primary', disabled, testID }: {
 }
 
 export function Card({ children, style, onPress, testID }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void; testID?: string }) {
+  const styles = useStyles();
   if (!onPress) return <View testID={testID} style={[styles.card, style]}>{children}</View>;
   return (
     <Pressable testID={testID} onPress={onPress} style={({ pressed }) => [styles.card, style, pressed && styles.pressed]}>
@@ -42,23 +45,27 @@ export function Card({ children, style, onPress, testID }: { children: React.Rea
   );
 }
 
-const styles = StyleSheet.create({
-  text: { color: C.ink, fontSize: S.body, lineHeight: 24 },
-  dim: { color: C.inkSoft, fontSize: S.small, lineHeight: 20 },
-  title: { fontSize: S.title, lineHeight: 34 },
-  button: { backgroundColor: C.kumach, borderRadius: R.button, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center' },
-  ghost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.8 },
-  buttonText: { color: C.kumachInk, fontSize: S.body, fontFamily: FONTS.bold },
-  ghostText: { color: C.ink },
-  card: { backgroundColor: C.paper, borderRadius: R.card, borderWidth: 1, borderColor: C.line, padding: 14, gap: 6 },
-  header: { gap: 4, paddingBottom: 4 },
-  backText: { color: C.inkSoft, fontSize: S.body, fontFamily: FONTS.medium },
-});
+const useStyles = themed((c, z) =>
+  StyleSheet.create({
+    text: { color: c.ink, fontSize: z(S.body), lineHeight: z(24) },
+    dim: { color: c.inkSoft, fontSize: z(S.small), lineHeight: z(20) },
+    title: { fontSize: z(S.title), lineHeight: z(34) },
+    button: { backgroundColor: c.kumach, borderRadius: R.button, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center' },
+    ghost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.line },
+    disabled: { opacity: 0.45 },
+    pressed: { opacity: 0.8 },
+    buttonText: { color: c.kumachInk, fontSize: z(S.body), fontFamily: FONTS.bold },
+    ghostText: { color: c.ink },
+    card: { backgroundColor: c.paper, borderRadius: R.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 6 },
+    header: { gap: 4, paddingBottom: 4 },
+    backText: { color: c.inkSoft, fontSize: z(S.body), fontFamily: FONTS.medium },
+  }),
+);
 
 /** Строка с заголовком экрана и «Назад». */
 export function Header({ title, onBack, back }: { title: string; onBack?: () => void; back?: string }) {
+  const styles = useStyles();
+  const look = useLook();
   return (
     <View style={styles.header}>
       {onBack ? (
@@ -66,7 +73,7 @@ export function Header({ title, onBack, back }: { title: string; onBack?: () => 
           <Text style={styles.backText}>{`‹ ${back ?? ''}`}</Text>
         </Pressable>
       ) : null}
-      <Txt title style={{ fontSize: S.lead, lineHeight: 28 }}>
+      <Txt title style={{ fontSize: look.z(S.lead), lineHeight: look.z(28) }}>
         {title}
       </Txt>
     </View>

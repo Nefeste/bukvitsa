@@ -1,39 +1,80 @@
-// Итоги задач и настройки — на телефоне. Не прочиталось — игра идёт без них (как в shelter: src/state/storage.ts @ fa04538).
+// Сохранение на телефоне (docs/04-data-model.md, «Телефон»): одна запись `bukvitsa.save` со схемой 1 в
+// AsyncStorage — как хранилище «Вотчины» и «Нард» (nardy: src/state/storage.ts @ 1d2bdff, сбой хранилища
+// не роняет игру). На Android AsyncStorage — база `RKStorage` в папке приложения, её и берёт автобэкап
+// (plugins/with-backup.js, как в «Нардах»); в веб-сборке — localStorage. Не прочиталось — игра идёт без него.
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_SETTINGS, type Settings, parseSettings } from './settings';
-import { parseResults, type Results } from './progress';
+import { parseResults } from './progress';
+import { emptySave, eventsOfResults, parseSave, withEvent, type Save } from './save';
+import { parseSettings } from './settings';
 
-const RESULTS = 'bukvitsa.results.v1';
-const SETTINGS = 'bukvitsa.settings.v1';
+export const KEYS = {
+  save: 'bukvitsa.save',
+  /** нечитаемая запись — для «Сообщить об ошибке» (specs/2026-10-screens.md, «Неудачные случаи») */
+  broken: 'bukvitsa.broken',
+  /** итоги и настройки 0.1 — читаются один раз, при переносе в схему 1 */
+  legacyResults: 'bukvitsa.results.v1',
+  legacySettings: 'bukvitsa.settings.v1',
+} as const;
 
-export async function loadResults(): Promise<Results> {
-  try {
-    return parseResults(await AsyncStorage.getItem(RESULTS));
-  } catch {
-    return {};
+async function get(key: string): Promise<string | null | undefined> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch {
+      // одна повторная попытка — сбой бывает мгновенным
+    }
   }
+  return undefined;
 }
 
-export async function saveResults(rs: Results): Promise<void> {
-  try {
-    await AsyncStorage.setItem(RESULTS, JSON.stringify(rs));
-  } catch {
-    // не сохранилось — итоги живут, пока игра открыта
+/**
+ * При запуске. `writable: false` — запись не прочиталась (сбой хранилища, не «пусто»): игра идёт с чистого
+ * листа, но не пишет поверх, чтобы не стереть прогресс, который прочитается при следующем запуске.
+ */
+export async function loadSave(today: string): Promise<{ save: Save; writable: boolean }> {
+  const raw = await get(KEYS.save);
+  if (raw === undefined) return { save: emptySave(today), writable: false };
+  const s = parseSave(raw, today);
+  if (s === 'broken') {
+    try {
+      await AsyncStorage.setItem(KEYS.broken, raw ?? '');
+    } catch {
+      // не отложилось — не страшно
+    }
+    return { save: emptySave(today), writable: true };
   }
+  if (s) return { save: s, writable: true };
+  // записи ещё нет: первый запуск или обновление с 0.1 — перенос итогов и настроек
+  const [r, st] = await Promise.all([get(KEYS.legacyResults), get(KEYS.legacySettings)]);
+  let save = emptySave(today);
+  save = { ...save, settings: parseSettings(st ?? null) };
+  for (const e of eventsOfResults(parseResults(r ?? null), today)) save = withEvent(save, e);
+  if (save.events.length || st) await writeSave(save);
+  return { save, writable: true };
 }
 
-export async function loadSettings(): Promise<Settings> {
-  try {
-    return parseSettings(await AsyncStorage.getItem(SETTINGS));
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
+let queue: Promise<void> = Promise.resolve();
+
+/** Записи идут по одной, в порядке вызова: последняя всегда ложится последней. */
+export function writeSave(s: Save): Promise<void> {
+  queue = queue.then(async () => {
+    try {
+      await AsyncStorage.setItem(KEYS.save, JSON.stringify(s));
+    } catch {
+      // хранилище полно или недоступно: прогресс живёт, пока игра открыта
+    }
+  });
+  return queue;
 }
 
-export async function saveSettings(s: Settings): Promise<void> {
-  try {
-    await AsyncStorage.setItem(SETTINGS, JSON.stringify(s));
-  } catch {
-    // не сохранилось — настройка действует, пока игра открыта
-  }
+/** «Удалить мои данные»: прогресс и настройки. «Буквица+» остаётся в RuStore и вернётся сверкой. */
+export function removeSave(): Promise<void> {
+  queue = queue.then(async () => {
+    try {
+      await AsyncStorage.multiRemove([KEYS.save, KEYS.broken, KEYS.legacyResults, KEYS.legacySettings]);
+    } catch {
+      // не удалилось — попробуется при следующем нажатии
+    }
+  });
+  return queue;
 }

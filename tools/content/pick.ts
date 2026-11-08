@@ -103,7 +103,8 @@ export function wrongEndings(id: string, version: number, p: Proverb, tails: { i
     if (t.id === p.id || tailKey(t.tail) === tailKey(own.tail)) return false;
     const m = wordCount(t.tail);
     const ratio = t.tail.length / own.tail.length;
-    if (Math.abs(m - n) > 1 || ratio < 0.6 || ratio > 1.6) return false;
+    // 0,75–1,4: самый длинный из четырёх не больше чем вдвое длиннее самого короткого (tools/content/play.ts)
+    if (Math.abs(m - n) > 1 || ratio < 0.75 || ratio > 1.4) return false;
     if (tailKey(t.tail).split(' ')[0] === first) return false;
     return !known.has(tailKey(`${own.head} ${t.tail}`));
   });
