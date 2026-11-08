@@ -4,7 +4,8 @@
 //
 //   bun tools/content/build.ts [--check] [--release]
 //   --check   — только проверить, ничего не писать
-//   --release — в набор только `review: checked`; календарь — только на checked и с запасом ≥ RELEASE_DAYS (60) дней, ADR 0008
+//   --release — в набор только `review: checked`; календарь — сверенные дни подряд от начала (с первого черновика
+//               дальше не идёт), и их запас от сегодня ≥ RELEASE_DAYS (60) дней, ADR 0008
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
@@ -23,6 +24,8 @@ import { endingSplit, letterRow, shuffleNotSame } from './shuffle';
 const ROOT = join(import.meta.dir, '..', '..');
 /** Запас выпущенного календаря от дня сборки, дней (ADR 0008: 60 сверенных, дописывается каждым выпуском). */
 export const RELEASE_DAYS = 60;
+/** Тетрадь меньше этого в выпуск не идёт — «В следующих версиях» (08-game-design.md, «Тетради»). */
+export const NOTEBOOK_MIN = 30;
 const RU = /^[а-яё]+(?:-[а-яё]+)*$/;
 
 interface Book {
@@ -183,22 +186,35 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
   }
 
   const inPack = new Set(tasks.map(t => t.id));
-  const notebooks: Notebook[] = books.map(b => ({
-    key: b.key,
-    title: b.title,
-    blurb: b.blurb,
-    free: yes(b.free),
-    tasks: recs.filter(r => r.notebooks?.includes(b.key) && inPack.has(r.id)).map(r => r.id),
-  }));
+  // выпуск (ADR 0008): тетрадь идёт только целиком сверенной и не меньше NOTEBOOK_MIN задач, иначе — «В следующих
+  // версиях»; бесплатная — обязательно
+  const unchecked = (key: string) => recs.filter(r => r.notebooks?.includes(key) && r.review !== 'checked').length;
+  const size = (key: string) => recs.filter(r => r.notebooks?.includes(key)).length;
+  const notebooks: Notebook[] = books.map(b => {
+    const left = opts.release ? unchecked(b.key) + (size(b.key) < NOTEBOOK_MIN && !yes(b.free) ? 1 : 0) : 0;
+    if (left && yes(b.free)) errors.push(`тетрадь ${b.key}: бесплатная, а не сверено ${left} — в выпуск она идёт целиком`);
+    return {
+      key: b.key,
+      title: b.title,
+      blurb: b.blurb,
+      free: yes(b.free),
+      tasks: left ? [] : recs.filter(r => r.notebooks?.includes(b.key) && inPack.has(r.id)).map(r => r.id),
+    };
+  });
 
   const calendar: Calendar = { from: raw.from ?? '', days: {} };
-  for (const [date, id] of Object.entries(raw.days ?? {})) {
+  // выпуск (ADR 0008): сверенные дни подряд от начала; с первого черновика календарь в набор не идёт — он растёт
+  // выпусками, а запас проверяется ниже
+  let cut: string | null = null;
+  let dropped = 0;
+  for (const [date, id] of Object.entries(raw.days ?? {}).sort(([a], [b]) => (a < b ? -1 : 1))) {
     const r = byId.get(id);
     if (!r) errors.push(`календарь, ${date}: нет записи ${id}`);
     else if (!yes(r.daily)) errors.push(`календарь, ${date}: ${id} без daily: yes`);
     else if (r.notebooks?.length) errors.push(`календарь, ${date}: ${id} стоит в тетради — задача дня не входит в тетради`);
-    else if (opts.release && r.review !== 'checked') errors.push(`календарь, ${date}: ${id} не checked`);
-    if (inPack.has(id)) calendar.days[date] = id;
+    if (opts.release && !cut && r?.review !== 'checked') cut = date;
+    if (cut) dropped++;
+    else if (inPack.has(id)) calendar.days[date] = id;
   }
   if (opts.release) {
     const dates = Object.keys(calendar.days).sort();
@@ -226,6 +242,8 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
   const report = [
     `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}, конец пословицы ${count('ending')}, тайнописи ${count('cipher')}`,
     `тетради: ${notebooks.map(b => `${b.key} ${b.tasks.length}`).join(', ')}`,
+    ...(opts.release ? [`выпуск: тетради ${notebooks.filter(b => b.tasks.length).map(b => b.key).join(', ') || 'нет'}; остальные — «В следующих версиях»`] : []),
+    ...(opts.release ? [`выпуск: в календаре ${Object.keys(calendar.days).length} сверенных дней подряд${cut ? `, с ${cut} — черновик, дальше ${dropped} дней не вошли` : ''}`] : []),
     `календарь: ${Object.keys(calendar.days).length} дней с ${calendar.from || '—'}; не по виду дня недели: ${offPlan} (из них в среду конец пословицы вместо старого слова: ${endingWed})`,
     `пословиц в источнике: ${pool.byId.size}, разрешено: ${pool.allowed.length}`,
   ];

@@ -50,7 +50,7 @@
 |---|---|---|
 | `pr.yml` (с 0.1) | PR в `main` | сборка контента, типы, линтер, тесты (проверка «Типы, линтер, тесты») |
 | `automerge.yml` (с 0.1, из набора `gornitsa-kit`, ADR студии 0022) | метка `ревью: ок`, новый коммит, конец проверок | сливает PR по правилам ADR 0018 |
-| `android.yml` (с 0.1, ключ, подпись и проверки APK — из `gornitsa-kit`) | тег `vX.Y.Z` | APK, подпись постоянным ключом, выпуск в Releases; `--release`-контент — с 0.2; AAB не собирается, пока нет Google Play |
+| `android.yml` (с 0.1, ключ, подпись и проверки APK — из `gornitsa-kit`) | тег `vX.Y.Z` | APK, подпись постоянным ключом, выпуск в Releases; набор `--release` — с 1.0.0 (0.x — закрытый тест с черновиками); AAB не собирается, пока нет Google Play |
 | `site.yml` (копия из «Узоров», с 08.11.2026) | в 04:41 по Москве, если `main` ушёл вперёд; вручную (Actions → «Веб-версия для сайта») | сборка с `BUKVITSA_WEB_BASE=/bukvitsa/test` → сценарий `tools/e2e/browser.ts` под этим адресом и с CSP сайта → шифрование открытым ключом машины (`https://gornitsa.games/.well-known/bukvitsa-age.pub`) → ветка `vps` (один коммит, два файла) → машина забирает её сама (`deploy/bukvitsa` в `Nefeste/gornitsagames`) → `gornitsa.games/bukvitsa/test/` под паролем. Пока ключа на сайте нет — предупреждение, ничего не выкладывается |
 | `rustore.yml` (с 0.1, из `gornitsa-kit`) | вручную | APK из Releases → черновик версии в RuStore |
 

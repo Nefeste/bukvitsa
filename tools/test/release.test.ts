@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { build } from '../content/build';
 import { calendarErrors, lockErrors, taskHash } from '../content/released';
 import { release } from '../content/release';
+import { parse } from 'yaml';
 import type { Task } from '../../src/engine/types';
 
 const ROOT = join(import.meta.dir, '../..');
@@ -61,6 +62,65 @@ describe('release.ts на копии content/', () => {
       writeFileSync(p, readFileSync(p, 'utf8').replace(/^version: 1$/m, 'version: 2'));
       const again = release(tmp, 'v1.0.1', { today: '2026-12-01' });
       expect(again.ok && again.bumped).toBe(1);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 60000);
+});
+
+describe('выпуск по ADR 0008 на копии content/', () => {
+  /** Копия content/, где сверены первая тетрадь и задачи дня первых `days` дней календаря. */
+  function partly(days: number): string {
+    const tmp = mkdtempSync(join(tmpdir(), 'bukvitsa-adr8-'));
+    cpSync(join(ROOT, 'content'), join(tmp, 'content'), { recursive: true });
+    mkdirSync(join(tmp, 'tools', 'test', 'fixtures'), { recursive: true });
+    writeFileSync(join(tmp, 'tools', 'test', 'fixtures', 'calendar-released.json'), '{}');
+    const cal = parse(readFileSync(join(tmp, 'content', 'calendar.yaml'), 'utf8')) as { days: Record<string, string> };
+    const want = new Set(Object.keys(cal.days).sort().slice(0, days).map(d => cal.days[d]));
+    for (const dir of readdirSync(join(tmp, 'content')).filter(d => !d.includes('.') && d !== 'sources'))
+      for (const f of readdirSync(join(tmp, 'content', dir)).filter(f => f.endsWith('.yaml'))) {
+        const p = join(tmp, 'content', dir, f);
+        const text = readFileSync(p, 'utf8');
+        const id = /^id: (.+)$/m.exec(text)?.[1] ?? '';
+        if (want.has(id) || /^notebooks:\s*(?:\[first|\n\s*- first)/m.test(text)) writeFileSync(p, text.replace(/^review: draft$/m, 'review: checked'));
+      }
+    return tmp;
+  }
+
+  test('сверены первая тетрадь и 61 день — выпуск проходит; в наборе ровно эти дни, черновики дальше не вошли', () => {
+    const tmp = partly(61);
+    try {
+      const { pack, errors, report } = build(tmp, { release: true, today: '2026-12-01' });
+      expect(errors).toEqual([]);
+      expect(Object.keys(pack.calendar.days)).toHaveLength(61);
+      expect(report.some(l => l.startsWith('выпуск: в календаре 61 сверенных дней подряд, с 2027-01-31 — черновик'))).toBe(true);
+      expect(pack.notebooks.find(b => b.key === 'first')!.tasks.length).toBe(54);
+      // остальные тетради не сверены целиком — пусты («В следующих версиях»), хоть одна запись и общая с первой
+      expect(pack.notebooks.filter(b => b.key !== 'first').every(b => b.tasks.length === 0)).toBe(true);
+      expect(report).toContain('выпуск: тетради first; остальные — «В следующих версиях»');
+      const r = release(tmp, 'v1.0.0', { today: '2026-12-01' });
+      expect(r.ok && r.days).toBe(61);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  test('в бесплатной тетради черновик — выпуск красный', () => {
+    const tmp = partly(61);
+    try {
+      const p = join(tmp, 'content', 'ciphers', '0001.yaml');
+      writeFileSync(p, readFileSync(p, 'utf8').replace(/^review: checked$/m, 'review: draft'));
+      expect(build(tmp, { release: true, today: '2026-12-01' }).errors).toContain('тетрадь first: бесплатная, а не сверено 1 — в выпуск она идёт целиком');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  test('сверено 30 дней — запаса меньше 60, выпуск красный', () => {
+    const tmp = partly(30);
+    try {
+      expect(build(tmp, { release: true, today: '2026-12-01' }).errors.some(e => e.startsWith('календарь: запас меньше 60 дней'))).toBe(true);
+      expect(release(tmp, 'v1.0.0', { today: '2026-12-01' }).ok).toBe(false);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

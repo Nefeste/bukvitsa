@@ -86,9 +86,13 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v5
       - run: npm ci
-      # Бандл JS берёт содержание из src/content/generated — его собирает скрипт.
+      # Бандл JS берёт содержание из src/content/generated — его собирает скрипт. С 1.0.0 — набор как в магазине
+      # (ADR 0008): только сверенное, календарь — сверенные дни подряд с запасом ≥ 60 дней от дня сборки; не набралось —
+      # сборка красная. 0.x — закрытый тест, с черновиками.
       - name: Содержание
-        run: bun tools/content/build.ts
+        run: |
+          V="$(node -p "require('./app.json').expo.version")"
+          if [ "${V%%.*}" -ge 1 ]; then bun tools/content/build.ts --release; else bun tools/content/build.ts; fi
       - name: Нативный проект (expo prebuild)
         run: npx expo prebuild --platform android --no-install
       - name: Больше памяти Gradle
