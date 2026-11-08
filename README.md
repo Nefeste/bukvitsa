@@ -47,7 +47,7 @@ EXPO_OFFLINE=1 npm run export:web && npm run e2e # веб-сборка и сце
 Все команды — в [`AGENTS.md`](AGENTS.md), «Commands», и в [`docs/05-process.md`](docs/05-process.md).
 На каждый PR CI проверяет содержание, типы, линтер и тесты (`.github/workflows/pr.yml`, из набора
 студии `gornitsa-kit`). PR без путей владельца из `.github/CODEOWNERS`
-сливается сам после зелёных проверок и метки `ревью: ок` от Ревьюера (`automerge.yml`);
+сливается сам после зелёных проверок и метки `ревью: ок` от Ревьюера (`automerge.yml`; метки пока нет — решение владельца #10, PR сливает он);
 с путями владельца — его сливает владелец ([`docs/05-process.md`](docs/05-process.md),
 «Ветки»).
 
