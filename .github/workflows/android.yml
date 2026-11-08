@@ -93,6 +93,22 @@ jobs:
         run: npx expo prebuild --platform android --no-install
       - name: Больше памяти Gradle
         run: printf '\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8\n' >> android/gradle.properties
+      # Первая сборка тега v0.2.0 (08.11.2026) упала до компиляции: обёртка Gradle не дождалась
+      # services.gradle.org за 10 с (networkTimeout=10000 в шаблоне Expo). Ждём 2 минуты и скачиваем
+      # дистрибутив заранее, до трёх попыток, — медленная сеть больше не роняет сборку.
+      - name: Gradle — дольше ждать сеть, скачать заранее
+        working-directory: android
+        run: |
+          set -euo pipefail
+          P=gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/^networkTimeout=.*/networkTimeout=120000/' "$P"
+          grep -qx 'networkTimeout=120000' "$P" || { echo "::error::в $P нет networkTimeout — шаблон Expo поменялся"; exit 1; }
+          for i in 1 2 3; do
+            ./gradlew --version -q && exit 0
+            echo "::warning::Gradle не скачался (попытка $i), жду $((i * 20)) с"
+            sleep $((i * 20))
+          done
+          echo "::error::Gradle не скачался за три попытки"; exit 1
 
       - name: Ключ подписи
         id: key
