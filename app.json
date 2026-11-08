@@ -20,7 +20,11 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.WAKE_LOCK",
         "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ECEDE6"
+      }
     },
     "locales": {
       "ru": {
@@ -49,7 +53,16 @@
           }
         }
       ],
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ECEDE6",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ]
+    ],
+    "icon": "./assets/icon.png"
   }
 }
