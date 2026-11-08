@@ -12,6 +12,8 @@ export interface Settings {
   theme?: 'light' | 'dark';
   /** «ещё крупнее» — текст и плашки ×1,25 */
   bigger?: boolean;
+  /** звук верного ответа и подсказки; не задано — включён (решение владельца #14) */
+  sound?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {};
@@ -26,6 +28,7 @@ export function parseSettings(raw: string | null): Settings {
     if (s.adsConsent === 'yes' || s.adsConsent === 'no') out.adsConsent = s.adsConsent;
     if (s.theme === 'light' || s.theme === 'dark') out.theme = s.theme;
     if (typeof s.bigger === 'boolean') out.bigger = s.bigger;
+    if (typeof s.sound === 'boolean') out.sound = s.sound;
     return out;
   } catch {
     return { ...DEFAULT_SETTINGS };
@@ -35,6 +38,11 @@ export function parseSettings(raw: string | null): Settings {
 /** Действует ли «меньше движения»: выбор игрока, а если он не выбирал — системная настройка. */
 export function lessMotionOf(s: Settings, system: boolean): boolean {
   return s.lessMotion ?? system;
+}
+
+/** Включён ли звук: не выбирал — включён. */
+export function soundOf(s: Settings): boolean {
+  return s.sound !== false;
 }
 
 /** Тёмная ли тема сейчас: выбор игрока, а если он не выбирал — тема телефона. */

@@ -18,6 +18,7 @@
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.RECORD_AUDIO",
         "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.WAKE_LOCK",
         "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"
       ],
@@ -55,6 +56,14 @@
         }
       ],
       "expo-font",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "microphonePermission": false
+        }
+      ],
       "./plugins/with-splash-window",
       [
         "expo-splash-screen",

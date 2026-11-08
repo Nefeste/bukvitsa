@@ -4,8 +4,9 @@ import { AccessibilityInfo, useColorScheme } from 'react-native';
 import type { Result } from '../engine';
 import { loadMoney, setPersonalAds, startMoney } from '../money';
 import { setLessMotion } from '../ui/motion';
+import { setSoundOn } from '../ui/sound';
 import { setLook } from '../ui/theme';
-import { darkOf, lessMotionOf, type Settings } from './settings';
+import { darkOf, lessMotionOf, soundOf, type Settings } from './settings';
 import { emptySave, eventOfResult, resultsOf, withEvent, type Save } from './save';
 import { loadSave, removeSave, writeSave } from './storage';
 import { todayISO } from './today';
@@ -58,6 +59,7 @@ export function useGame() {
   useEffect(() => {
     setLessMotion(lessMotionOf(settings, systemLess));
     setLook(darkOf(settings, systemDark), settings.bigger === true);
+    setSoundOn(soundOf(settings));
   }, [settings, systemLess, systemDark]);
 
   /** Изменить сохранение и записать его; запись не прочиталась при запуске — не писать поверх. */
