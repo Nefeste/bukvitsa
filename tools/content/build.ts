@@ -14,7 +14,7 @@ import type { Kind as TaskKind, Task } from '../../src/engine/types';
 import type { Notebook, Pack } from '../../src/content/types';
 import { loadPool } from './pool';
 import { FOLDERS, readRecords, type Rec } from './records';
-import { letterRow, shuffleNotSame } from './shuffle';
+import { endingSplit, letterRow, shuffleNotSame } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
 const RU = /^[а-яё]+(?:-[а-яё]+)*$/;
@@ -72,6 +72,22 @@ export function toTask(r: Rec, errors: string[]): Task | null {
     if (!r.meaning) errors.push(`${at}: нет толкования`);
     const options = shuffleNotSame([word, ...opts.slice(0, 3)], r.id, r.version);
     return { ...base, text: `${word} — ${r.meaning ?? ''}`, prompt: r.meaning ?? '', answer: word, options };
+  }
+  if (r.kind === 'ending') {
+    const split = r.text ? endingSplit(r.text) : null;
+    const opts = r.options ?? [];
+    if (!split) {
+      errors.push(`${at}: у конца пословицы нужен текст с одним тире «начало — конец»`);
+      return null;
+    }
+    const keyOf = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[^а-я ]/g, '').replace(/\s+/g, ' ').trim();
+    const keys = new Set([split.tail, ...opts].map(keyOf));
+    if (opts.length !== 3 || keys.size !== 4 || opts.some(o => !o.trim())) {
+      errors.push(`${at}: у конца пословицы нужно три неверных конца, разных и не совпадающих с верным`);
+      return null;
+    }
+    const options = shuffleNotSame([split.tail, ...opts], r.id, r.version);
+    return { ...base, prompt: `${split.head} — …`, answer: split.tail, options };
   }
   if (r.kind === 'extra-letter') {
     if (!r.text || !r.letter || !/^[а-яё]$/.test(r.letter) || !r.word || !r.position) {
@@ -180,10 +196,11 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
   const draft = recs.filter(r => r.review === 'draft').length;
   const plan = ['proverb', 'riddle', 'old-word', 'extra-letter', 'parts', 'proverb', 'riddle'];
   const offPlan = Object.entries(calendar.days).filter(([d, id]) => byId.get(id)?.kind !== plan[weekday(d)]).length;
+  const endingWed = Object.entries(calendar.days).filter(([d, id]) => weekday(d) === 2 && byId.get(id)?.kind === 'ending').length;
   const report = [
-    `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}`,
+    `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}, конец пословицы ${count('ending')}`,
     `тетради: ${notebooks.map(b => `${b.key} ${b.tasks.length}`).join(', ')}`,
-    `календарь: ${Object.keys(calendar.days).length} дней с ${calendar.from || '—'}; не по виду дня недели: ${offPlan}`,
+    `календарь: ${Object.keys(calendar.days).length} дней с ${calendar.from || '—'}; не по виду дня недели: ${offPlan} (из них в среду конец пословицы вместо старого слова: ${endingWed})`,
     `пословиц в источнике: ${pool.byId.size}, разрешено: ${pool.allowed.length}`,
   ];
   const pack: Pack = { tasks, notebooks, calendar, released, draft };

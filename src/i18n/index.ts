@@ -25,6 +25,7 @@ const KIND: Record<Kind, { name: string; lower: string; ask: string }> = {
   'extra-letter': { name: 'Лишняя буква', lower: 'лишняя буква', ask: 'В одном слове лишняя буква. Нажмите на слово, потом на букву' },
   'old-word': { name: 'Старое слово', lower: 'старое слово', ask: 'Какое слово так толкует Даль?' },
   parts: { name: 'По частям', lower: 'по частям', ask: 'Расставьте части по порядку' },
+  ending: { name: 'Конец пословицы', lower: 'конец пословицы', ask: 'Чем кончается пословица?' },
 };
 
 const ORDINAL = ['первой', 'второй', 'третьей', 'четвёртой', 'пятой'];
@@ -65,6 +66,8 @@ export const T = {
     hintPart: 'Открыть часть',
     hintWord: 'Подсветить слово',
     first: (c: string) => `Начинается на «${c}»`,
+    firstWord: (w: string) => `Первое слово — «${w}»`,
+    hintFirstWord: 'Открыть первое слово',
     right: 'Верно',
     peeked: 'Подсмотрена',
     from: 'Откуда это',

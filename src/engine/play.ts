@@ -1,7 +1,8 @@
 // Ход решения задачи — чистые функции «состояние → состояние» (docs/08-game-design.md, «Пять видов
 // задач», «Подсказки»; docs/specs/2026-10-engine.md: place / unplace / hint). Экран только рисует.
 //
-// Четыре взаимодействия (ADR 0005): ряд букв (пословица, загадка), выбор из четырёх (старое слово),
+// Четыре взаимодействия (ADR 0005): ряд букв (пословица, загадка), выбор из четырёх (старое слово,
+// конец пословицы — шестой вид, решение владельца bukvitsa#6),
 // найти в строке (лишняя буква), расставить части (по частям).
 import { norm } from './words';
 import type { Kind, Result, Task } from './types';
@@ -16,7 +17,7 @@ export interface Play {
   hidden: number[];
   /** выбор из четырёх: погашенные варианты (неверные и погашенные подсказкой) */
   dimmed: number[];
-  /** выбор из четырёх: первая буква ответа — подсказка «Открыть букву» */
+  /** выбор из четырёх: начало ответа — подсказка «Открыть букву» (у конца пословицы — первое слово) */
   first: string | null;
   /** найти в строке: раскрытое слово */
   open: number | null;
@@ -41,12 +42,16 @@ export const HINTS: Record<Kind, number[]> = {
   proverb: [1, 2, 3],
   riddle: [1, 2, 3],
   'old-word': [1, 2, 3],
+  ending: [1, 2, 3],
   'extra-letter': [1, 3],
   parts: [2, 3],
 };
 
 /** После скольких неверных выбор из четырёх и строка считаются подсмотренными (08-game-design.md). */
 export const WRONG_LIMIT = 3;
+
+/** Первое слово конца пословицы — подсказка «Открыть первое слово». */
+export const firstWord = (s: string) => s.split(/\s+/)[0].replace(/[,;:.!?—]+$/, '');
 
 const letters = (t: Task) => t.answer.replace(/-/g, '').split('');
 const usesRow = (t: Task) => t.kind === 'proverb' || t.kind === 'riddle';
@@ -219,13 +224,14 @@ export function hint(task: Task, p: Play): Play {
     const next = { ...q, slots, locked };
     return slots.every(s => s != null) && ans.every((c, i) => norm(row[slots[i]!]) === norm(c)) ? solved(next) : next;
   }
-  if (task.kind === 'old-word') {
+  if (task.kind === 'old-word' || task.kind === 'ending') {
     if (h === 1) {
       const opts = task.options ?? [];
       const wrongs = opts.map((_, i) => i).filter(i => norm(opts[i]) !== norm(task.answer) && !q.dimmed.includes(i));
       const need = Math.max(0, opts.length - 2 - q.dimmed.length);
       return { ...q, dimmed: [...q.dimmed, ...wrongs.slice(0, need)] };
     }
+    if (task.kind === 'ending') return { ...q, first: firstWord(task.answer) };
     return { ...q, first: task.answer[0].toUpperCase() };
   }
   if (task.kind === 'extra-letter') {

@@ -6,7 +6,7 @@ import { build, toTask } from '../content/build';
 import { clean, mainReading, slugOf, splitLine } from '../content/dal';
 import { fromRendered } from '../content/fetch';
 import { bannedWord } from '../content/pool';
-import { extraCount, FREQUENT, letterRow } from '../content/shuffle';
+import { endingSplit, extraCount, FREQUENT, letterRow } from '../content/shuffle';
 import { WEEK } from '../content/calendar';
 import { weekday } from '../../src/engine';
 import type { Rec } from '../content/records';
@@ -54,6 +54,32 @@ describe('ряд букв и перемешивание — сборкой (ADR 
     expect(bad({ kind: 'old-word', word: 'буквица', meaning: 'm', options: ['буквица', 'а', 'б'] })).toBe(1);
     expect(bad({ kind: 'parts', text: 'Не то хлеб, что в поле.', parts: ['Не то', 'хлеб,', 'что в огороде.'] })).toBe(1);
     expect(bad({ kind: 'extra-letter', text: 'Не работа сушит, а забота.', word: 2, letter: 'р', position: 1 })).toBe(1);
+    expect(bad({ kind: 'ending', text: 'Тише едешь — дальше будешь.', options: ['дальше будешь', 'а', 'б'] })).toBe(1);
+    expect(bad({ kind: 'ending', text: 'Тише едешь, дальше будешь.', options: ['а', 'б', 'в'] })).toBe(1);
+    expect(bad({ kind: 'ending', text: 'Тише едешь — дальше будешь.', options: ['не в руке', 'зубам здорово', 'лишние слезы'] })).toBe(0);
+  });
+});
+
+describe('конец пословицы (bukvitsa#6)', () => {
+  test('начало и конец — по одному тире; конец без точки; диалог, «?», «!» и большая буква — не берём', () => {
+    expect(endingSplit('Тише едешь — дальше будешь.')).toEqual({ head: 'Тише едешь', tail: 'дальше будешь' });
+    expect(endingSplit('А когда досуг-то будет? — А когда нас не будет.')).toBeNull();
+    expect(endingSplit('Едешь — а куда?')).toBeNull();
+    expect(endingSplit('Тише едешь, дальше будешь.')).toBeNull();
+    expect(endingSplit('Раз — два — три.')).toBeNull();
+  });
+  test('в наборе: условие с «…», четыре разных варианта, верный — один раз, порядок от сборки', () => {
+    const endings = pack.tasks.filter(t => t.kind === 'ending');
+    expect(endings.length).toBeGreaterThanOrEqual(157);
+    const key = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[^а-я ]/g, '').trim();
+    for (const t of endings) {
+      expect(t.prompt.endsWith(' — …')).toBe(true);
+      expect(t.options!.length).toBe(4);
+      expect(new Set(t.options!.map(key)).size).toBe(4);
+      expect(t.options!.filter(o => o === t.answer).length).toBe(1);
+      expect(t.text.includes(t.answer)).toBe(true);
+    }
+    expect(endings.filter(t => t.options![0] === t.answer).length).toBeLessThan(endings.length / 2);
   });
 });
 
@@ -78,6 +104,8 @@ describe('сборка content/', () => {
     for (const [, id] of days) expect(inBooks.has(id)).toBe(false);
     // понедельник, пятница, четверг — всегда своего вида: пословиц, частей и букв хватает
     for (const [d, id] of days) if ([0, 3, 4, 5].includes(weekday(d))) expect({ d, k: kinds.get(id) }).toEqual({ d, k: WEEK[weekday(d)] });
+    // среда без старых слов — конец пословицы (bukvitsa#6), не пословица с пропуском
+    for (const [d, id] of days) if (weekday(d) === 2) expect(['old-word', 'ending']).toContain(kinds.get(id) ?? '');
   });
   test('первая тетрадь бесплатна и в ней все пять видов', () => {
     const first = pack.notebooks.find(b => b.key === 'first')!;

@@ -57,3 +57,20 @@ export function shuffleNotSame<T>(items: readonly T[], id: string, version: numb
   }
   return items.slice().reverse();
 }
+
+/**
+ * Конец пословицы (шестой вид, решение владельца bukvitsa#6): «начало — конец» по первому тире.
+ * Конец — как в источнике, без точки в конце. `null` — тире нет, их больше одного, части коротки или
+ * конец выдаёт себя видом (с большой буквы, с «?» или «!», ответ в диалоге).
+ */
+export function endingSplit(text: string): { head: string; tail: string } | null {
+  const at = text.split(' — ');
+  if (at.length !== 2) return null;
+  const head = at[0].trim();
+  const tail = at[1].trim().replace(/[.;,]+$/, '');
+  // ответ не должен выдавать себя видом: диалоги («…? — …»), конец с большой буквы, вопрос или восклицание
+  if (/[?!]$/.test(head) || /[?!(){}\[\]]/.test(tail) || !/^[а-яё]/.test(tail)) return null;
+  const n = (s: string) => s.split(/\s+/).filter(w => /[А-Яа-яЁё]/.test(w)).length;
+  if (n(head) < 2 || n(tail) < 1 || n(tail) > 6 || tail.length > 40) return null;
+  return { head, tail };
+}

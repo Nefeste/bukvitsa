@@ -58,7 +58,7 @@ async function solve(p: Page, t: Task, wrong = false) {
       await tap(p, `slot-${letters.length - 1}`);
     }
     for (const i of wrong ? pick(letters).slice(-1) : pick(letters)) await tap(p, `tile-${i}`);
-  } else if (t.kind === 'old-word') {
+  } else if (t.kind === 'old-word' || t.kind === 'ending') {
     const right = t.options!.findIndex(o => o === t.answer);
     if (wrong) await tap(p, `option-${(right + 1) % 4}`);
     await tap(p, `option-${right}`);
@@ -112,6 +112,24 @@ try {
   check((await page.getByTestId(`day-${DAY1}`).textContent())?.includes('●') === true && (await page.getByTestId(`day-${DAY3}`).count()) === 0, 'архив: прошлые дни со значками, сегодняшнего и будущих нет');
   await snap(page, 'archive');
   await tap(page, 'back');
+
+  // среда — конец пословицы (bukvitsa#6): подсказка «Открыть первое слово», ошибка, верный конец
+  const WED = '2026-12-02';
+  const dw = task(PACK.calendar.days[WED]);
+  check(dw.kind === 'ending', `среда ${WED}: конец пословицы (${dw.kind})`);
+  await page.goto(`http://localhost:${server.port}/?date=${WED}`);
+  await tap(page, 'daily-solve');
+  await page.getByTestId('question').waitFor();
+  check((await page.getByTestId('question').textContent())?.endsWith('— …') === true, 'конец пословицы: начало и «— …»');
+  await tap(page, 'hint-1');
+  await tap(page, 'hint-2');
+  check((await page.getByText(/Первое слово — «/).count()) === 1, 'конец пословицы: подсказка «Первое слово»');
+  await snap(page, 'ending');
+  const right = dw.options!.findIndex(o => o === dw.answer);
+  await tap(page, `option-${right}`);
+  await page.getByTestId('source').waitFor();
+  check((await page.getByTestId('verdict').textContent()) === 'Верно', 'конец пословицы: решена');
+  await tap(page, 'home');
 
   // первая тетрадь: по задаче каждого вида
   const first = PACK.notebooks.find(b => b.key === 'first')!;
