@@ -14,6 +14,7 @@ import { words } from '../../src/engine/words';
 import { mainReading, type Proverb } from './dal';
 import { bannedWord, commonness, loadPool, norm, type Pool } from './pool';
 import { idOf, nextNumber, readRecords, writeRecord, type Kind, type Rec, type Source } from './records';
+import { endingSplit, shuffle, Xorshift } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
 const BOOK = 'Пословицы русского народа (Даль)';
@@ -31,6 +32,8 @@ export const STOP = new Set(
 );
 
 let FREQ = new Map<string, number>();
+let KNOWN = new Set<string>();
+let TAILS: { id: string; tail: string }[] = [];
 const freqOf = (w: string) => FREQ.get(norm(w)) ?? 0;
 
 function contentWords(text: string): number[] {
@@ -79,6 +82,40 @@ export function partsOf(text: string, n: 3 | 4): string[] | null {
   }
   const parts = at.map((p, i) => text.slice(p, i + 1 < at.length ? at[i + 1] : text.length).trim());
   return parts.join(' ') === text.replace(/\s+/g, ' ').trim() ? parts : null;
+}
+
+/** Ключ сравнения концов: строчными, ё как е, без знаков. */
+const tailKey = (s: string) => norm(s).replace(/[^а-я ]/g, '').replace(/\s+/g, ' ').trim();
+const wordCount = (s: string) => words(s).length;
+
+/**
+ * Три неверных конца для «Конца пословицы» (bukvitsa#6): концы других разрешённых пословиц Даля с
+ * тире — той же длины в словах (±1) и в буквах (0,6–1,6), с другим первым словом. Начало с чужим
+ * концом не должно совпасть ни с одной пословицей сборника. Выбор — от sha256(id:version), как ряд
+ * букв (ADR 0005): одинаковый вход — одинаковые варианты.
+ */
+export function wrongEndings(id: string, version: number, p: Proverb, tails: { id: string; tail: string }[], known: Set<string>): string[] | null {
+  const own = endingSplit(p.text);
+  if (!own) return null;
+  const n = wordCount(own.tail);
+  const first = tailKey(own.tail).split(' ')[0];
+  const cand = tails.filter(t => {
+    if (t.id === p.id || tailKey(t.tail) === tailKey(own.tail)) return false;
+    const m = wordCount(t.tail);
+    const ratio = t.tail.length / own.tail.length;
+    if (Math.abs(m - n) > 1 || ratio < 0.6 || ratio > 1.6) return false;
+    if (tailKey(t.tail).split(' ')[0] === first) return false;
+    return !known.has(tailKey(`${own.head} ${t.tail}`));
+  });
+  const out: string[] = [];
+  const keys = new Set([tailKey(own.tail)]);
+  for (const t of shuffle(cand, new Xorshift(id, version))) {
+    if (keys.has(tailKey(t.tail))) continue;
+    keys.add(tailKey(t.tail));
+    out.push(t.tail);
+    if (out.length === 3) return out;
+  }
+  return null;
 }
 
 const COMMON = 'оеаинтсрвлкмдпу';
@@ -158,7 +195,7 @@ const PLAN = {
   firstMix: { proverb: 9, riddle: 8, 'extra-letter': 11, parts: 11 } as Record<string, number>,
   bookMix: ['proverb', 'extra-letter', 'parts', 'proverb'] as Kind[],
   /** пул задач дня на три года (1096 дней): пословицы — и на дни без загадок и старых слов */
-  daily: { proverb: 800, 'extra-letter': 160, parts: 160 } as Record<string, number>,
+  daily: { proverb: 800, 'extra-letter': 160, parts: 160, ending: 160 } as Record<string, number>,
 };
 
 interface Book {
@@ -170,6 +207,11 @@ interface Book {
 function main() {
   const pool = loadPool(ROOT);
   FREQ = pool.freq;
+  KNOWN = new Set([...pool.byId.values()].map(q => tailKey(q.text.replace(' — ', ' '))));
+  TAILS = pool.allowed.flatMap(q => {
+    const s = endingSplit(q.text);
+    return s ? [{ id: q.id, tail: s.tail }] : [];
+  });
   const stems = [
     ...(parse(readFileSync(join(ROOT, 'content', 'banned.yaml'), 'utf8')) as { stems: string[] }).stems,
     ...readFileSync(join(ROOT, 'content', 'stoplist.txt'), 'utf8').split('\n').map(s => s.trim()).filter(s => s && !s.startsWith('#')),
@@ -211,6 +253,16 @@ function main() {
       }
       return { ...base(id), text: p.text, word: e.word, letter: e.letter, position: e.position };
     }
+    if (kind === 'ending') {
+      const id = nextId(kind);
+      const split = endingSplit(p.text);
+      const options = split ? wrongEndings(id, 1, p, TAILS, KNOWN) : null;
+      if (!split || !options) {
+        counter.set(kind, counter.get(kind)! - 1);
+        return null;
+      }
+      return { ...base(id), text: p.text, options };
+    }
     if (kind === 'parts') {
       const parts = partsOf(p.text, (fnv1a(p.id) % 2 === 0 ? 3 : 4) as 3 | 4) ?? partsOf(p.text, 3);
       if (!parts) return null;
@@ -220,7 +272,9 @@ function main() {
   };
   /** Пробная проверка без расхода номера. */
   const fits = (kind: Kind, p: Proverb) =>
-    kind === 'proverb' ? gapOf(p.text) != null : kind === 'parts' ? (partsOf(p.text, 3) ?? partsOf(p.text, 4)) != null : extraOf('probe', p.text) != null;
+    kind === 'ending'
+      ? endingSplit(p.text) != null && wrongEndings('probe', 1, p, TAILS, KNOWN) != null
+      : kind === 'proverb' ? gapOf(p.text) != null : kind === 'parts' ? (partsOf(p.text, 3) ?? partsOf(p.text, 4)) != null : extraOf('probe', p.text) != null;
 
   const hashOrder = (salt: string) => (a: Proverb, b: Proverb) => fnv1a(`${salt}:${a.id}`) - fnv1a(`${salt}:${b.id}`);
   const inBook = (key: string) => existing.filter(r => r.notebooks?.includes(key)).length;
@@ -273,7 +327,7 @@ function main() {
   // пул задач дня — сперва самые обиходные пословицы, внутри ступени — по хешу
   const tier = (p: Proverb) => Math.floor(commonness(p.text, pool.freq));
   const sorted = pool.allowed.slice().sort((a, c) => tier(c) - tier(a) || hashOrder('daily')(a, c));
-  for (const kind of ['proverb', 'extra-letter', 'parts'] as Kind[]) {
+  for (const kind of ['proverb', 'extra-letter', 'parts', 'ending'] as Kind[]) {
     let have = existing.filter(r => r.kind === kind && (r.daily === 'yes' || r.daily === true)).length + made.filter(r => r.kind === kind && r.daily === 'yes').length;
     for (const p of sorted) {
       if (have >= PLAN.daily[kind]) break;
@@ -285,7 +339,7 @@ function main() {
     }
   }
   const count = (k: Kind) => made.filter(r => r.kind === k).length;
-  console.log(`новых записей: ${made.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, с лишней буквой ${count('extra-letter')}, по частям ${count('parts')}`);
+  console.log(`новых записей: ${made.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, с лишней буквой ${count('extra-letter')}, по частям ${count('parts')}, конец пословицы ${count('ending')}`);
 }
 
 if (import.meta.main) main();

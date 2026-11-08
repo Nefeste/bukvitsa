@@ -50,6 +50,24 @@ describe('ряд букв', () => {
   });
 });
 
+describe('конец пословицы — тот же выбор из четырёх', () => {
+  const ending: Task = { ...base, id: 'ending-9001', kind: 'ending', prompt: 'Тише едешь — …', answer: 'дальше будешь', options: ['не в руке', 'дальше будешь', 'зубам здорово', 'лишние слезы'] };
+  test('подсказки: два неверных гаснут, потом первое слово, потом ответ', () => {
+    let p = hint(ending, startPlay(ending));
+    expect(p.dimmed.length).toBe(2);
+    expect(p.dimmed).not.toContain(1);
+    p = hint(ending, p);
+    expect(p.first).toBe('дальше');
+    p = choose(ending, p, 1);
+    expect(p.result).toEqual({ done: true, tries: 1, hints: 2, peeked: false });
+  });
+  test('три неверных — подсмотрена', () => {
+    let p = startPlay(ending);
+    for (const i of [0, 2, 3]) p = choose(ending, p, i);
+    expect(p.result.peeked).toBe(true);
+  });
+});
+
 describe('выбор из четырёх', () => {
   const word: Task = { ...base, id: 'word-9001', kind: 'old-word', prompt: 'стар. азбука, букварь', answer: 'буквица', options: ['пропись', 'буквица', 'устав', 'грамотка'] };
   test('неверный гаснет; после третьего неверного — подсмотрена', () => {

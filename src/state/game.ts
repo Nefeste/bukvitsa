@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import type { Result } from '../engine';
+import { loadMoney, setPersonalAds, startMoney } from '../money';
 import { setLessMotion } from '../ui/motion';
 import { lessMotionOf, type Settings } from './settings';
 import type { Results } from './progress';
@@ -17,7 +18,12 @@ export type Screen =
   | { name: 'archive' }
   | { name: 'notebook'; key: string }
   | { name: 'settings' }
-  | { name: 'about' };
+  | { name: 'about' }
+  | { name: 'plus' }
+  /** экран согласия на персональную рекламу — перед первым роликом; ответ — и дальше `next` */
+  | { name: 'consent'; next: Screen }
+  /** короткий экран «Реклама» перед межстраничным роликом, потом `next` */
+  | { name: 'ad'; next: Screen };
 
 export function useGame() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
@@ -29,19 +35,20 @@ export function useGame() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([loadResults(), loadSettings(), AccessibilityInfo.isReduceMotionEnabled().catch(() => false)]).then(([r, s, sys]) => {
+    Promise.all([loadResults(), loadSettings(), AccessibilityInfo.isReduceMotionEnabled().catch(() => false), loadMoney(today)]).then(([r, s, sys]) => {
       if (!alive) return;
       setResults(r);
       setSettingsState(s);
       setSystemLess(sys);
       setReady(true);
+      void startMoney(s.adsConsent === 'yes', today);
     });
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', v => setSystemLess(v));
     return () => {
       alive = false;
       sub.remove();
     };
-  }, []);
+  }, [today]);
 
   useEffect(() => {
     setLessMotion(lessMotionOf(settings, systemLess));
@@ -56,7 +63,10 @@ export function useGame() {
   }, []);
 
   const setSettings = useCallback((s: Settings) => {
-    setSettingsState(s);
+    setSettingsState(prev => {
+      if (s.adsConsent && s.adsConsent !== prev.adsConsent) setPersonalAds(s.adsConsent === 'yes');
+      return s;
+    });
     void saveSettings(s);
   }, []);
 

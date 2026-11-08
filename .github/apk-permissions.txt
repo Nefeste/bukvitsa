@@ -1,5 +1,10 @@
 # Разрешения, которые может просить релизный APK «Буквицы» (действие android-contents набора
 # gornitsa-kit, шаг «Содержимое» в android.yml): строка — полное имя, «*» в конце — любая концовка.
-# Сети в 0.x нет (ADR студии 0005; INTERNET вырезает plugins/with-release-no-internet.js). Реклама в 1.0
-# — решение владельца (Issue); с ней сюда добавится INTERNET. Файл — путь владельца.
+# С 0.2 в игре реклама Яндекса (решение владельца 08.11.2026, bukvitsa#4): ей нужны сеть и рекламный
+# идентификатор; список — как у «Нард» без звука и вибрации (в «Буквице» их нет). Если сборка тега
+# попросит что-то ещё — сборка красная, новое разрешение добавляется сюда только решением владельца,
+# вместе с store/forms.md («Разрешения Android») и политикой. Файл — путь владельца.
+android.permission.ACCESS_NETWORK_STATE
+android.permission.INTERNET
+com.google.android.gms.permission.AD_ID
 games.gornitsa.bukvitsa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION

@@ -6,6 +6,8 @@
 export interface Settings {
   /** «меньше движения»; не задано — как в системе телефона */
   lessMotion?: boolean;
+  /** персональная реклама (specs/2026-10-money.md, «Экран согласия»); не задано — ещё не спрашивали, ролики обычные */
+  adsConsent?: 'yes' | 'no';
 }
 
 export const DEFAULT_SETTINGS: Settings = {};
@@ -15,7 +17,10 @@ export function parseSettings(raw: string | null): Settings {
   try {
     const v = raw ? (JSON.parse(raw) as unknown) : {};
     const s = v && typeof v === 'object' ? (v as Partial<Settings>) : {};
-    return typeof s.lessMotion === 'boolean' ? { lessMotion: s.lessMotion } : {};
+    const out: Settings = {};
+    if (typeof s.lessMotion === 'boolean') out.lessMotion = s.lessMotion;
+    if (s.adsConsent === 'yes' || s.adsConsent === 'no') out.adsConsent = s.adsConsent;
+    return out;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
