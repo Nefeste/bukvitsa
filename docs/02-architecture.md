@@ -175,7 +175,7 @@ Expo SDK 57, React Native, TypeScript — как у соседей (ADR студ
   вызов — `src/state/rate.ts`.
 - **«Виртуальный игрок»** `tools/content/play.ts` ([`09-content.md`](09-content.md), §5).
 - **Звука нет**: `expo-audio` добавляет в APK разрешение `MODIFY_AUDIO_SETTINGS` — его нет в белом списке
-  (`.github/apk-permissions.txt`, путь владельца); вопрос владельцу — в Issue.
+  (`.github/apk-permissions.txt`, путь владельца); вопрос владельцу — #14.
 
 ## Графика (ADR 0023 устава)
 
