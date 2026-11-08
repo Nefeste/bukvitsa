@@ -1,10 +1,10 @@
-// Настройки (08-game-design.md, «Экраны»): тема, «ещё крупнее», «Меньше движения» (ADR устава 0023, правило 6),
+// Настройки (08-game-design.md, «Экраны»): звук, тема, «ещё крупнее», «Меньше движения» (ADR устава 0023, правило 6),
 // персональная реклама, «Удалить мои данные» — с подтверждением на самом экране, без системного окна.
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { T } from '../i18n';
 import type { Game } from '../state/game';
-import type { Settings } from '../state/settings';
+import { soundOf, type Settings } from '../state/settings';
 import { Button, Card, Header, Txt } from '../ui/kit';
 import { themed } from '../ui/theme';
 
@@ -29,6 +29,19 @@ export function SettingsScreen({ game }: { game: Game }) {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Header title={T.settings.title} onBack={() => game.setScreen({ name: 'home' })} back={T.task.back} />
+      <Card>
+        <Txt style={{ fontWeight: '600' }}>{T.settings.sound}</Txt>
+        <Txt dim>{T.settings.soundAbout}</Txt>
+        <Choice
+          id="sound"
+          value={soundOf(s)}
+          onPick={v => set({ sound: v })}
+          opts={[
+            { label: tri.on, value: true, key: 'on' },
+            { label: tri.off, value: false, key: 'off' },
+          ]}
+        />
+      </Card>
       <Card>
         <Txt style={{ fontWeight: '600' }}>{T.settings.theme}</Txt>
         <Choice<Settings['theme']>

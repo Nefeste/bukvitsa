@@ -26,6 +26,7 @@ import { shareOrCopy } from '../state/share';
 import type { Flow, Game } from '../state/game';
 import { Button, Card, Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
+import { cue, preloadSounds } from '../ui/sound';
 import { R, S, themed, useLook } from '../ui/theme';
 
 export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: string }) {
@@ -33,10 +34,12 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
   const task = taskById(id);
   const [play, setPlay] = useState<Play>(() => startPlay(task, resultOf(game.results, id)));
   const { record, results, setScreen } = game;
+  useEffect(preloadSounds, []);
   // итог пишется, когда задача решена или подсмотрена; решённая заново подсмотренная — тоже
   useEffect(() => {
     const prev = results[id];
     if (play.result.done && (!prev?.done || (prev.peeked && !play.result.peeked))) {
+      if (!play.result.peeked) cue('right');
       record(id, play.result);
       // реклама считает только задачи тетрадей; задача дня её не двигает (08-game-design.md, «Реклама»)
       if (flow.from === 'notebook' && !prev?.done) notebookTaskSolved();
@@ -82,7 +85,7 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
         ) : (
           <>
             <Answer task={task} play={play} setPlay={setPlay} />
-            {h != null ? <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => setPlay(p => hint(task, p))} /> : null}
+            {h != null ? <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => { cue('hint'); setPlay(p => hint(task, p)); }} /> : null}
           </>
         )}
       </View>

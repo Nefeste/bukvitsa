@@ -106,7 +106,7 @@ Expo для веба собирает то же приложение (ADR [0007]
 |---|---|
 | диалог, механика текстов, журнал сбоев и «Сообщить об ошибке», хранилище, настройки, тема | `Nefeste/votchina` |
 | плагин подписи, `android.yml` (сборка на тег), `rustore.yml` (загрузка в RuStore), `site.yml` (закрытая веб-версия), `pr.yml`, `automerge.yml`, `automerge.ts` | `Nefeste/uzory` |
-| RuStore Pay (покупка, восстановление), RuStore Review, рекламный адаптер и его плагин | `Nefeste/nardy` |
+| RuStore Pay (покупка, восстановление), RuStore Review, рекламный адаптер и его плагин, проигрыватели звука (`voices.ts`) и синтез звуков | `Nefeste/nardy` |
 | сборка контента из YAML с проверками и отчётом, «виртуальный игрок» как образец | `Nefeste/uzory` (`tools/content/`), `Nefeste/skazy` |
 
 Сначала переносятся workflow — когда они появятся в `gornitsa-kit`, копировать их больше
@@ -179,8 +179,10 @@ Expo SDK 57, React Native, TypeScript — как у соседей (ADR студ
 - **Оценка в RuStore**: `modules/rustore-review` — копия из «Нард» (nardy @ 1d2bdff), правило — `src/engine/rate.ts`,
   вызов — `src/state/rate.ts`.
 - **«Виртуальный игрок»** `tools/content/play.ts` ([`09-content.md`](09-content.md), §5).
-- **Звука нет**: `expo-audio` добавляет в APK разрешение `MODIFY_AUDIO_SETTINGS` — его нет в белом списке
-  (`.github/apk-permissions.txt`, путь владельца); вопрос владельцу — #14.
+- **Звук** (решение владельца #14): `src/ui/sound.ts` — `expo-audio` и проигрыватели `src/ui/voices.ts` из «Нард»
+  (заводятся при открытии задачи, чинятся после ошибки Android, неполадка — в журнал сбоев); в браузере — `sound.web.ts`,
+  тишина. Файлы `assets/sounds/right.wav`, `hint.wav` собирает `bun tools/sound/make.ts` (`tools/sound/synth.ts`).
+  `MODIFY_AUDIO_SETTINGS` — в белом списке; микрофон и фоновая служба вырезаны (`app.json`).
 
 ## «Сообщить об ошибке» (0.3)
 

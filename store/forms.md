@@ -40,12 +40,13 @@
 |---|---|
 | `INTERNET`, `ACCESS_NETWORK_STATE` | реклама и покупка |
 | `com.google.android.gms.permission.AD_ID` | рекламный идентификатор для Рекламной сети Яндекса (добавляет её SDK) |
+| `MODIFY_AUDIO_SETTINGS` | служебное библиотеки звука `expo-audio`: звук верного ответа и подсказки; о данных игрока ничего не говорит (#14) |
 | `RECEIVE_BOOT_COMPLETED` | служебное RuStore Pay (его библиотека `ru.rustore.sdk:metrics`): отложенные задачи SDK переживают перезагрузку телефона; как в «Нардах» |
 | `games.gornitsa.bukvitsa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | служебное Android, само приложение |
 
 Явно вырезаны в `app.json` (`blockedPermissions`): вибрация, память (`READ/WRITE_EXTERNAL_STORAGE`), окна поверх
-других, микрофон, фоновая служба, `WAKE_LOCK`, служба Install Referrer. Звука в игре нет (#14), поэтому нет и
-`MODIFY_AUDIO_SETTINGS`.
+других, микрофон, фоновая служба, `WAKE_LOCK`, служба Install Referrer. Звук играет `expo-audio` без микрофона и
+фоновой службы (`recordAudioAndroid: false`, `enableBackgroundPlayback: false`).
 
 `RECEIVE_BOOT_COMPLETED` найдено заранее, по манифестам библиотек RuStore Pay 11.1.0 и RuStore Review 10.5.1 из maven
 RuStore (08.11.2026): больше эти SDK ничего сверх таблицы не просят. Решение владельца 08.11.2026 — разрешить, как в
