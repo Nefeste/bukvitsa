@@ -88,7 +88,10 @@ Android включён (правила резервной копии — пла�
 Expo для веба собирает то же приложение (ADR [0007](adr/0007-web-first-class.md)):
 
 - **закрытая проверка** с компьютера — `gornitsa.games/bukvitsa/test/` под паролем, как
-  у «Узоров» (`site.yml`, ветка `vps`), с 0.2;
+  у «Узоров»: `app.config.js` ставит адрес сборки (`BUKVITSA_WEB_BASE`), `site.yml` собирает, проверяет
+  сценарием и кладёт зашифрованной в ветку `vps`, машина сайта забирает её сама (`deploy/bukvitsa` в
+  `Nefeste/gornitsagames`); пароль задаёт владелец (`sudo bukvitsa-password`). Как устроено — [`05-process.md`](05-process.md),
+  «Автоматика»;
 - **сценарий Playwright** на веб-сборке — часть проверок перед push ([`06-testing.md`](06-testing.md));
 - **Яндекс Игры** — та же сборка с SDK площадки, после 1.0 ([`07-roadmap.md`](07-roadmap.md), 1.2).
 

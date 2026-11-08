@@ -1,0 +1,144 @@
+# из uzory: .github/workflows/site.yml @ 3069332 — без Skia и CanvasKit, сценарий — tools/e2e/browser.ts.
+# Закрытая веб-версия на сайте (docs/02-architecture.md, «Веб-сборка»; ADR 0007): сборка для папки
+# /bukvitsa/test, зашифрованная открытым ключом сервера сайта (age), — в ветку vps. Ветку читает только
+# сервер, который сам забирает её раз в 5 минут (deploy/bukvitsa в репозитории Nefeste/gornitsagames);
+# в сборке задачи-черновики, ещё не сверенные со сканом, поэтому в открытом виде она никуда не уходит —
+# ни в ветку, ни в артефакты.
+#
+# Раз в сутки, если main ушёл вперёд от выложенного (коммит — в build.json ветки vps), и
+# вручную (Actions → Веб-версия для сайта → Run workflow). Не на каждое слияние (устав,
+# ADR 0019): слияние автослиянием workflow на push не запускает, а расписание — запускает.
+# Собирается только main: проверки на PR он уже прошёл, а сценарий в браузере идёт здесь.
+name: Веб-версия для сайта
+
+on:
+  schedule:
+    - cron: '41 1 * * *'   # 04:41 по Москве
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bukvitsa-site
+  cancel-in-progress: false
+
+jobs:
+  site:
+    name: Веб-версия для сайта
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Выложен ли уже main
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          HEAD="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          LIVE="$(gh api "repos/${GITHUB_REPOSITORY}/contents/build.json?ref=vps" --jq .content 2>/dev/null | base64 -d 2>/dev/null | jq -r .commit 2>/dev/null || true)"
+          echo "main ${HEAD:0:7}, в ветке vps — ${LIVE:0:7}"
+          echo "sha=$HEAD" >> "$GITHUB_OUTPUT"
+          if [ "$HEAD" = "$LIVE" ] && [ "$MANUAL" != "true" ]; then
+            echo "go=no" >> "$GITHUB_OUTPUT"
+            echo "Веб-версия уже из main ${HEAD:0:7} — выкладывать нечего." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+        if: steps.fresh.outputs.go == 'yes'
+        with:
+          ref: ${{ steps.fresh.outputs.sha }}
+      - uses: actions/setup-node@v5
+        if: steps.fresh.outputs.go == 'yes'
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        if: steps.fresh.outputs.go == 'yes'
+        with:
+          bun-version: 1.3.11
+      - if: steps.fresh.outputs.go == 'yes'
+        run: npm ci
+      - if: steps.fresh.outputs.go == 'yes'
+        run: bun tools/content/build.ts
+      - name: Сборка для папки сайта /bukvitsa/test
+        if: steps.fresh.outputs.go == 'yes'
+        env:
+          BUKVITSA_WEB_BASE: /bukvitsa/test
+          EXPO_OFFLINE: '1'
+        run: npx expo export --platform web --output-dir dist-site
+      # на сайт — только сборка, прошедшая сценарий Playwright под своим адресом и с правилами безопасности
+      # сайта (docs/06-testing.md, §5); снимки сценария никуда не выкладываются
+      - name: Chromium для Playwright
+        if: steps.fresh.outputs.go == 'yes'
+        run: npx playwright install --with-deps chromium
+      - name: Сценарий на сборке для сайта
+        if: steps.fresh.outputs.go == 'yes'
+        env:
+          E2E_DIST: dist-site
+          E2E_BASE: /bukvitsa/test
+        run: bun tools/e2e/browser.ts
+      - name: Ключ сервера сайта
+        id: key
+        if: steps.fresh.outputs.go == 'yes'
+        run: |
+          set -euo pipefail
+          URL=https://gornitsa.games/.well-known/bukvitsa-age.pub
+          KEY="$(curl -fsS --retry 3 --max-time 20 "$URL" 2>/dev/null | tr -d '\r\n ' || true)"
+          if ! printf '%s' "$KEY" | grep -qE '^age1[0-9a-z]{58}$'; then
+            echo "::warning::Ключа сервера нет ($URL): сайт ещё не настроен для «Буквицы» (deploy/bukvitsa в Nefeste/gornitsagames). Веб-версия не выложена; выложит следующий запуск."
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=yes" >> "$GITHUB_OUTPUT"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+      - name: age
+        if: steps.key.outputs.ready == 'yes'
+        run: sudo apt-get update -q && sudo apt-get install -y -q age
+      - name: Ветка vps
+        if: steps.key.outputs.ready == 'yes'
+        env:
+          KEY: ${{ steps.key.outputs.key }}
+          SHA: ${{ steps.fresh.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s dist-site/index.html
+          V="$(jq -r .expo.version app.json)"
+          mkdir vps
+          tar -C dist-site -cf - . | gzip -9 | age -r "$KEY" -o vps/test.tar.gz.age
+          # в ветку уходит только шифровка: заголовок age, а gzip её не читает
+          test "$(head -c 21 vps/test.tar.gz.age | tr -d '\0')" = "age-encryption.org/v1"
+          if gzip -t vps/test.tar.gz.age 2>/dev/null; then echo "::error::test.tar.gz.age читается без ключа"; exit 1; fi
+          jq -n --arg commit "$SHA" --arg version "$V" --arg built "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg run "${{ github.run_number }}" --arg key "$KEY" \
+            '{commit: $commit, version: $version, built: $built, run: $run, base: "/bukvitsa/test", key: $key}' > vps/build.json
+          cat vps/build.json
+          cd vps
+          git init -q -b vps
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Веб-версия для сайта: main ${SHA:0:7}, ${V}"
+          # один коммит без истории: прежние сборки не копятся в репозитории
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/vps
+          SIZE="$(du -k test.tar.gz.age | cut -f1)"
+          { echo "### Веб-версия для сайта"; echo ""; echo "Ветка \`vps\`: сборка ${V} из ${SHA:0:7}, зашифрована ключом сервера (${SIZE} КБ). Сервер заберёт её за 5 минут: https://gornitsa.games/bukvitsa/test/"; } >> "$GITHUB_STEP_SUMMARY"
+      # ветку читаем обратно: в ней ровно эта сборка —
+      # два файла, коммит main, та же шифровка, и без ключа сервера она не читается
+      - name: Ветка vps — что выложено
+        if: steps.key.outputs.ready == 'yes'
+        env:
+          SHA: ${{ steps.fresh.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 --single-branch --branch vps "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" vps-back
+          test "$(git -C vps-back ls-files | sort | tr '\n' ' ')" = "build.json test.tar.gz.age "
+          test "$(jq -r .commit vps-back/build.json)" = "$SHA"
+          cmp vps/test.tar.gz.age vps-back/test.tar.gz.age
+          test "$(head -c 21 vps-back/test.tar.gz.age | tr -d '\0')" = "age-encryption.org/v1"
+          if gzip -t vps-back/test.tar.gz.age 2>/dev/null; then echo "::error::в ветке vps сборка читается без ключа"; exit 1; fi
+          echo "Ветка \`vps\` прочитана обратно: сборка из ${SHA:0:7}, зашифрована." >> "$GITHUB_STEP_SUMMARY"
