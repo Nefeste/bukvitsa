@@ -270,6 +270,39 @@ try {
   await page.getByTestId('daily-solve').waitFor();
   check((await page.getByTestId('daily-result').count()) === 0, '«Удалить мои данные»: прогресс с нуля');
 
+  // Маленький телефон 360 × 640 и «ещё крупнее» (specs/2026-10-screens.md, «Неудачные случаи»): самые длинные ряд букв,
+  // части и варианты из календаря — без прокрутки вбок, всё видно в ширину экрана.
+  const narrow = await browser.newContext({ viewport: { width: 360, height: 640 } });
+  await narrow.addInitScript(() => {
+    localStorage.setItem('bukvitsa.save', JSON.stringify({ schema: 1, events: [], settings: { bigger: true, adsConsent: 'no' }, installedOn: '2026-12-01', counters: { solved: 0, peeked: 0, days: 0 } }));
+  });
+  const small = await narrow.newPage();
+  small.on('pageerror', e => errors.push(String(e)));
+  const longest = (score: (t: Task) => number) =>
+    Object.entries(PACK.calendar.days).sort(([, a], [, b]) => score(task(b)) - score(task(a)))[0];
+  const cases: [string, (t: Task) => number][] = [
+    ['ряд букв', t => t.row?.length ?? 0],
+    ['части', t => (t.parts ? t.parts.join('').length : 0)],
+    ['варианты', t => (t.options ? Math.max(...t.options.map(o => o.length)) : 0)],
+  ];
+  for (const [what, score] of cases) {
+    const [date, id] = longest(score);
+    await small.goto(`${ROOT_URL()}?date=${date}`);
+    await small.getByTestId('daily-solve').click();
+    await small.getByTestId('question').waitFor();
+    const fits = await small.evaluate(() => {
+      const wide = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+      const out = [...document.querySelectorAll('[data-testid^="tile-"],[data-testid^="part-"],[data-testid^="option-"]')].filter(e => {
+        const r = e.getBoundingClientRect();
+        return r.left < 0 || r.right > window.innerWidth + 0.5;
+      }).length;
+      return { wide, out };
+    });
+    await small.screenshot({ path: join(OUT, `${String(++shot).padStart(2, '0')}-narrow-${task(id).kind}.png`) });
+    check(fits.wide <= 360 && fits.out === 0, `360 × 640, «ещё крупнее»: ${what} (${id}) — в ширину экрана`);
+  }
+  await narrow.close();
+
   if (errors.length) throw new Error(`ошибки в консоли:\n${errors.join('\n')}`);
   console.log('Сценарий пройден.');
 } finally {

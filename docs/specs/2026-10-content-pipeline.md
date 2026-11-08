@@ -21,7 +21,7 @@
 | `bun tools/content/build.ts [--check] [--release]` | `content/` → `src/content/generated/pack.ts`; проверки §5; отчёт `dist/report.md`; `--release` берёт только `checked` |
 | `bun tools/content/play.ts` | «виртуальный игрок»: двусмысленные ряды (второе слово из ряда по частотному словарю), варианты, части |
 | `bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years N` | дописывает `content/calendar.yaml` с чередованием видов; выпущенные даты не трогает |
-| `bun tools/content/release.ts vX.Y.Z` | пополняет `content/released.json` версиями записей, вошедших в выпуск |
+| `bun tools/content/release.ts vX.Y.Z` | пополняет `content/released.json` версиями записей, вошедших в выпуск, `content/released-lock.json` — их отпечатками, `tools/test/fixtures/calendar-released.json` — выпущенными датами (сделано 08.11.2026) |
 
 Генератор лишних букв и перемешивания — `tools/content/shuffle.ts`: xorshift от
 `sha256(id + ':' + version)`; тест держит золотые ряды для записей-образцов.

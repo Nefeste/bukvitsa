@@ -14,6 +14,7 @@ import type { Kind as TaskKind, Task } from '../../src/engine/types';
 import type { Notebook, Pack } from '../../src/content/types';
 import { loadPool } from './pool';
 import { FOLDERS, readRecords, type Rec } from './records';
+import { calendarErrors, lockErrors, type Lock } from './released';
 import { endingSplit, letterRow, shuffleNotSame } from './shuffle';
 
 const ROOT = join(import.meta.dir, '..', '..');
@@ -191,6 +192,17 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
     const today = opts.today ?? new Date().toISOString().slice(0, 10);
     if (!last || dayNumber(last) - dayNumber(today) < 365) errors.push(`календарь: запас меньше 365 дней (последний день — ${last ?? 'нет'})`);
   }
+
+  // выпущенное не меняется: запись — только новой version, дата календаря — никогда (tools/content/release.ts)
+  const readJson = <T>(file: string, empty: T): T => {
+    try {
+      return JSON.parse(readFileSync(file, 'utf8')) as T;
+    } catch {
+      return empty;
+    }
+  };
+  errors.push(...lockErrors(tasks, readJson<Record<string, Lock>>(join(root, 'content', 'released-lock.json'), {})));
+  errors.push(...calendarErrors(calendar.days, readJson<Record<string, string>>(join(root, 'tools', 'test', 'fixtures', 'calendar-released.json'), {})));
 
   const count = (k: string) => tasks.filter(t => t.kind === k).length;
   const draft = recs.filter(r => r.review === 'draft').length;
