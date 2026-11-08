@@ -10,7 +10,7 @@ import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Browser, type Page } from 'playwright';
 import { PACK } from '../../src/content/generated/pack';
-import { norm, weekday, type Task } from '../../src/engine';
+import { cipherKey, norm, weekday, type Task } from '../../src/engine';
 import type { Event, Save } from '../../src/state/save';
 import { renderGraphics } from './graphics';
 
@@ -133,6 +133,21 @@ try {
   await page.getByTestId('question').waitFor();
   await tap(page, `part-${Number(kTask.answer.split(',')[0])}`);
   await shot(page, 'parts-dark');
+  await page.context().close();
+
+  // 8. тайнопись — первая из первой тетради, несколько букв поставлено
+  const ci = first.tasks.findIndex(id => task(id).kind === 'cipher');
+  const cTask = task(first.tasks[ci]);
+  page = await open(browser, pDay, seed(pDay, [cTask.id]));
+  await tap(page, 'notebook-first');
+  await tap(page, `cell-${ci}`);
+  await page.getByTestId('question').waitFor();
+  const key = cipherKey(cTask);
+  for (const n of key.map((_, i) => i + 1).filter(n => !cTask.open!.includes(n)).slice(0, 3)) {
+    await tap(page, `code-${cTask.code!.indexOf(n)}`);
+    await tap(page, `key-${key[n - 1]}`);
+  }
+  await shot(page, 'cipher');
   await page.context().close();
 
   await renderGraphics(browser);

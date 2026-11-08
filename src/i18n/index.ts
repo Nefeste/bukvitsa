@@ -42,11 +42,11 @@ export function howSolved(r: Result): string {
 
 /** Текст «Поделиться» без условия и ответа — чтобы не портить день другу. */
 export function shareText(date: string, kind: Kind, r: Result): string {
-  return [`Буквица · ${humanDate(date)} · ${KIND[kind].lower}`, howSolved(r), 'gornitsa.games/bukvitsa'].join('\n');
+  return [`Складно · ${humanDate(date)} · ${KIND[kind].lower}`, howSolved(r), 'gornitsa.games/bukvitsa'].join('\n');
 }
 
 export const T = {
-  app: { name: 'Буквица', initial: 'Б', tagline: 'Пословицы, загадки и старые слова по Далю' },
+  app: { name: 'Складно', initial: 'С', tagline: 'Пословицы, загадки и старые слова по Далю' },
   home: {
     daily: (date: string, kind: Kind) => `Задача дня · ${humanDate(date)} · ${KIND[kind].lower}`,
     solve: 'Решать',
@@ -87,9 +87,9 @@ export const T = {
   archive: { title: 'Архив', none: 'Прошлых задач дня пока нет — архив начнётся завтра', solved: 'решена', peeked: 'подсмотрена', open: 'не решена' },
   notebook: { done: 'Решена', solved: 'решена', peeked: 'подсмотрена', open: 'не тронута', item: (n: number) => `Задача ${n}` },
   money: {
-    plus: '«Буквица+»',
-    plusHome: '«Буквица+» — без рекламы и все тетради',
-    thanks: 'Спасибо! «Буквица+» у вас: рекламы нет, все тетради открыты',
+    plus: '«Складно+»',
+    plusHome: '«Складно+» — без рекламы и все тетради',
+    thanks: 'Спасибо! «Складно+» у вас: рекламы нет, все тетради открыты',
     what: ['Все тетради — сейчас и те, что выйдут потом', 'Без рекламы — совсем', 'Подсказки и задача дня — бесплатны всем, как и прежде'],
     price: (p: string | null) => (p ? `${p} — один раз, не подписка` : 'Один раз, не подписка'),
     buy: 'Купить',
@@ -107,12 +107,12 @@ export const T = {
     failed: 'Оплата не прошла',
     cancelled: 'Покупка отменена',
     locked: 'Закрыта',
-    openPlus: 'Открыть в «Буквице+»',
+    openPlus: 'Открыть в «Складно+»',
     tens: (n: number) => `${n} задач за ролик`,
     needNet: 'Нужен интернет',
     opened: (n: number, total: number) => `Открыто ${n} из ${total}`,
     ad: 'Реклама',
-    adNote: '«Буквица+» убирает её навсегда',
+    adNote: '«Складно+» убирает её навсегда',
     consentTitle: 'Реклама помогает игре быть бесплатной',
     consentAsk: 'Показывать персональную рекламу? Её подбирают по интересам. Обычной рекламы не меньше и не больше.',
     consentYes: 'Персональную',
@@ -137,7 +137,7 @@ export const T = {
     bigger: 'Ещё крупнее',
     biggerAbout: 'Текст и плашки букв крупнее на четверть',
     wipe: 'Удалить мои данные',
-    wipeAbout: 'Решённые задачи и настройки. «Буквица+» останется: она вернётся из RuStore.',
+    wipeAbout: 'Решённые задачи и настройки. «Складно+» останется: покупка вернётся из RuStore.',
     wipeAsk: 'Удалить все решённые задачи и настройки? Вернуть их будет нельзя.',
     wipeYes: 'Удалить',
     wipeNo: 'Не удалять',
@@ -154,7 +154,7 @@ export const T = {
     preview: 'Текст отчёта',
     send: 'Отправить',
     copy: 'Скопировать отчёт',
-    subject: (v: string) => `Буквица ${v}: ошибка`,
+    subject: (v: string) => `Складно ${v}: ошибка`,
     fromTask: 'Нашли ошибку в задаче?',
     labels: {
       what: 'Что не так',

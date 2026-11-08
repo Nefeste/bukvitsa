@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Bukvitsa",
+    "name": "Skladno",
     "slug": "bukvitsa",
     "version": "0.2.0",
     "orientation": "portrait",
@@ -30,7 +30,7 @@
     "locales": {
       "ru": {
         "android": {
-          "app_name": "Буквица"
+          "app_name": "Складно"
         }
       }
     },
