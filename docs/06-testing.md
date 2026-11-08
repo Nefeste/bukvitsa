@@ -73,9 +73,10 @@ React Compiler.
 ## 7. Сборка APK
 
 Только на тег (`android.yml`): проверка подписи постоянным ключом, размер APK, список
-разрешений в сборке сравнивается с белым списком проекта (`tools/test/permissions.json`:
-`INTERNET`, `AD_ID`, `ACCESS_NETWORK_STATE`, вибрация — и больше ничего); лишнее
-разрешение — красная сборка.
+разрешений в сборке сравнивается с белым списком проекта (`.github/apk-permissions.txt`:
+`INTERNET`, `ACCESS_NETWORK_STATE`, `AD_ID` и служебное `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` — и больше
+ничего; вибрация вырезана в `app.json`); лишнее разрешение — красная сборка. Что отвечать в анкете RuStore —
+[`../store/forms.md`](../store/forms.md), «Разрешения Android».
 
 ## Что уже есть (0.1.0, 08.11.2026)
 
