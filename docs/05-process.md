@@ -76,8 +76,10 @@
 
 1. `bun tools/content/build.ts --check --release` зелёный; «виртуальный игрок» без
    ошибок; длина календаря от сегодня — не меньше 365 дней.
-2. Все задачи календаря и тетрадей версии — `review: checked`; `content/released.json`
-   пополнен.
+2. Все задачи календаря и тетрадей версии — `review: checked`; выпуск записан:
+   `bun tools/content/release.ts vX.Y.Z` (`content/released.json`, `content/released-lock.json` — отпечатки задач,
+   `tools/test/fixtures/calendar-released.json` — выпущенные даты). Только для выпуска в RuStore: сборки на тег для
+   закрытого теста с черновиками — не выпуск.
 3. Номер версии поднят во всех местах; раздел версии в `README.md`; «Что нового»
    в `store/listing.ru.md`.
 4. `store/site/page.ru.md` соответствует версии (статус, снимки, цена); снимки
