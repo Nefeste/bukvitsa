@@ -75,7 +75,8 @@
 Общая часть — в уставе; шаги «Буквицы»:
 
 1. `bun tools/content/build.ts --check --release` зелёный; «виртуальный игрок» без
-   ошибок; длина календаря от сегодня — не меньше 365 дней.
+   ошибок; длина календаря от сегодня — не меньше 60 дней
+   (`RELEASE_DAYS`, ADR 0008); каждый выпуск дописывает сверенные дни.
 2. Все задачи календаря и тетрадей версии — `review: checked`; выпуск записан:
    `bun tools/content/release.ts vX.Y.Z` (`content/released.json`, `content/released-lock.json` — отпечатки задач,
    `tools/test/fixtures/calendar-released.json` — выпущенные даты). Только для выпуска в RuStore: сборки на тег для
