@@ -15,18 +15,24 @@ import { AboutScreen } from './src/screens/AboutScreen';
 import { PlusScreen } from './src/screens/PlusScreen';
 import { ConsentScreen } from './src/screens/ConsentScreen';
 import { AdScreen } from './src/screens/AdScreen';
+import { ReportScreen } from './src/screens/ReportScreen';
+import { installCrashHandlers } from './src/state/crashlog';
 import { useLook } from './src/ui/theme';
+
+// журнал сбоев для «Сообщить об ошибке» — с первой строчки, до первого экрана
+installCrashHandlers();
 
 export default function App() {
   const game = useGame();
   // шрифты студии лежат в сборке — грузятся мгновенно; не загрузились — игра идёт системным шрифтом
   const [fontsReady, fontsError] = useFonts(FONT_FILES);
   const { screen, setScreen } = game;
-  // «Назад» на телефоне: из задачи тетради — к тетради, отовсюду — на главную; с главной — выход
+  // «Назад» на телефоне: из отчёта — туда, откуда открыт; из задачи тетради — к тетради, отовсюду — на главную; с главной — выход
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen.name === 'home') return false;
-      if (screen.name === 'task' && screen.flow.from === 'notebook') setScreen({ name: 'notebook', key: screen.flow.key });
+      if (screen.name === 'report') setScreen(screen.back);
+      else if (screen.name === 'task' && screen.flow.from === 'notebook') setScreen({ name: 'notebook', key: screen.flow.key });
       else setScreen({ name: 'home' });
       return true;
     });
@@ -51,6 +57,7 @@ export default function App() {
               {screen.name === 'plus' ? <PlusScreen game={game} /> : null}
               {screen.name === 'consent' ? <ConsentScreen game={game} next={screen.next} /> : null}
               {screen.name === 'ad' ? <AdScreen game={game} next={screen.next} /> : null}
+              {screen.name === 'report' ? <ReportScreen game={game} task={screen.task} screen={screen.screen} back={screen.back} /> : null}
             </>
           ) : null}
         </View>
