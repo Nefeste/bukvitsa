@@ -1,0 +1,19 @@
+id: extra-letter-0189
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Торговля
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Торговля
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.torgovlya.87.1
+about: Из раздела «Торговля». У Даля рядом — «Хороший товар сам себя хвалит».
+text: Кто чем торгует, тот тем и ворует.
+word: 7
+letter: с
+position: 3

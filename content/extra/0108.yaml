@@ -1,0 +1,19 @@
+id: extra-letter-0108
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Человек
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Человек
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.chelovek.98.1
+about: "Из раздела «Человек». У Даля в скобках: и страх. У Даля рядом — «Рыбам вода, птицам воздух, а человеку вся земля»."
+text: В ком стыд, в том и совесть.
+word: 3
+letter: р
+position: 2

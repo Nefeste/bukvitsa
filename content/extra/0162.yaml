@@ -1,0 +1,19 @@
+id: extra-letter-0162
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Ученье — наука
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Ученье_—_Наука
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.uchene-nauka.188.1
+about: "Из раздела «Ученье — наука». У Даля в скобках: ногтя, волоска. У Даля рядом — «Кто хочет много знать, тому надо мало спать»."
+text: Он пальца его не стоит.
+word: 2
+letter: м
+position: 2

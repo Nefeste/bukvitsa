@@ -1,0 +1,19 @@
+id: extra-letter-0105
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Поиск — находка
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Поиск_—_Находка
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.poisk-nahodka.101.1
+about: Из раздела «Поиск — находка». У Даля рядом — «Чего не поищешь, того не сыщешь».
+text: Нашел, да не объявил — все равно что утаил.
+word: 8
+letter: м
+position: 2

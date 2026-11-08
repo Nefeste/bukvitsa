@@ -1,0 +1,19 @@
+id: extra-letter-0120
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Игры — Забавы — Ловля
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Игры_—_Забавы_—_Ловля
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.igry-zabavy-lovlya.111.1
+about: "Из раздела «Игры — Забавы — Ловля». У Даля в скобках: все равны. У Даля рядом — «Охота пуще неволи»."
+text: В игре, что в бане.
+word: 2
+letter: в
+position: 4

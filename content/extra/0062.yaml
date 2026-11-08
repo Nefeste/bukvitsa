@@ -1,0 +1,19 @@
+id: extra-letter-0062
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Здоровье — хворь
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Здоровье_—_Хворь
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.zdorove-hvor.23.1
+about: Из раздела «Здоровье — хворь». У Даля рядом — «Здоровье всего дороже».
+text: Что ни болит, все к сердцу валит.
+word: 3
+letter: с
+position: 4

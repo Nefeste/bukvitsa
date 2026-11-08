@@ -1,0 +1,18 @@
+id: proverb-0446
+version: 1
+kind: proverb
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Земледелие
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Земледелие
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.zemledelie.11.1
+about: Из раздела «Земледелие». У Даля рядом — «Держись за сошеньку, за кривую ноженьку».
+text: Лето родит, а не поле.
+answer: поле
+gap: 5

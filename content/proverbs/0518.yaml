@@ -1,0 +1,18 @@
+id: proverb-0518
+version: 1
+kind: proverb
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Мир — ссора — спор
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Мир_—_Ссора_—_Спор
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.mir-ssora-spor.130.1
+about: Из раздела «Мир — ссора — спор». У Даля рядом — «Чего вы там не разделили?».
+text: Не тронь, так не воняет.
+answer: тронь
+gap: 2

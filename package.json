@@ -1,0 +1,43 @@
+{
+  "name": "bukvitsa",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "private": true,
+  "description": "Буквица — словесные задачи на русском: пословицы Даля с пропущенным словом, лишней буквой и в разбивку",
+  "scripts": {
+    "start": "bun tools/content/build.ts && expo start",
+    "android": "expo run:android",
+    "web": "bun tools/content/build.ts && expo start --web",
+    "content": "bun tools/content/build.ts",
+    "typecheck": "bun tools/content/build.ts && tsc --noEmit && tsc --noEmit -p tools",
+    "lint": "expo lint src App.tsx --max-warnings 0",
+    "test": "bun tools/content/build.ts && bun test tools/test",
+    "export:web": "bun tools/content/build.ts && expo export -p web --output-dir dist-web",
+    "e2e": "bun tools/e2e/browser.ts"
+  },
+  "dependencies": {
+    "@expo-google-fonts/kurale": "^0.4.2",
+    "@expo-google-fonts/onest": "^0.4.2",
+    "@expo/metro-runtime": "~57.0.16",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~57.0.24",
+    "expo-build-properties": "~57.0.22",
+    "expo-font": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "~0.21.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "bun-types": "^1.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
+    "playwright": "1.56.1",
+    "typescript": "~6.0.3",
+    "yaml": "^2.9.1"
+  }
+}

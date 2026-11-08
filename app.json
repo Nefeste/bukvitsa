@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Bukvitsa",
+    "slug": "bukvitsa",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#ECEDE6",
+    "android": {
+      "package": "games.gornitsa.bukvitsa",
+      "versionCode": 1,
+      "allowBackup": false,
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.VIBRATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.WAKE_LOCK",
+        "com.google.android.gms.permission.AD_ID",
+        "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"
+      ]
+    },
+    "locales": {
+      "ru": {
+        "android": {
+          "app_name": "Буквица"
+        }
+      }
+    },
+    "web": {
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "./plugins/with-release-signing",
+      "./plugins/with-release-no-internet",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "useLegacyPackaging": true
+          }
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}

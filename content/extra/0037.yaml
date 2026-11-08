@@ -1,0 +1,20 @@
+id: extra-letter-0037
+version: 1
+kind: extra-letter
+review: draft
+daily: no
+notebooks:
+  - word
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Язык — речь
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Язык_—_Речь
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.yazyk-rech.54.1
+about: "Из раздела «Язык — речь». У Даля в скобках: пожинает. У Даля рядом — «Язык телу якорь»."
+text: Кто говорит, тот сеет; кто слушает — собирает.
+word: 4
+letter: а
+position: 4

@@ -1,0 +1,19 @@
+id: extra-letter-0081
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Тороватость — скупость
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Тороватость_—_Скупость
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.torovatost-skupost.100.1
+about: Из раздела «Тороватость — скупость». У Даля рядом — «Одной рукой собирай, другою раздавай!».
+text: Помрешь — ничего с собой не возьмешь.
+word: 1
+letter: а
+position: 7

@@ -22,9 +22,10 @@ One daily puzzle shared by everyone, thematic notebooks, free hints, no timers, 
 Money: interstitial ads between puzzles (never inside a puzzle, never around the daily
 puzzle) and one purchase «Буквица+». Expo / React Native / TypeScript, SVG, no Skia.
 
-**There is no code yet** (owner's decision 04.10.2026: documents and the "planned" card on
-the site only). Do not start implementation until the owner opens development; until then,
-work is documents, specs, ADRs and content records (`content/`, `review: draft`).
+**Development is open** (owner's decision 08.11.2026, `Nefeste/uprava#80`): release in RuStore by mid-December.
+0.1.0 is in `main`'s history: the engine of five kinds, the content build, 1 338 draft records made by a script from
+the Wikisource text of Dahl (`docs/09-content.md`, §9), a three-year calendar from drafts, the screens. What is not
+done yet against the documents — `docs/02-architecture.md`, «Что сделано».
 
 ## Read `docs/` before changing anything
 
@@ -66,26 +67,29 @@ RuStore Pay / Review or the ad SDK code from memory — follow «Expo has change
 charter's `AGENTS.md` and read the current docs of each SDK before use. The ad SDK version is
 pinned and changed only in a separate PR.
 
-## Commands (planned; appear with 0.1)
+## Commands
 
 ```bash
+npm ci
 npx expo install <package>          # ALWAYS use instead of npm/yarn/pnpm/bun add
-bun tools/content/build.ts --check  # FIRST: content/ → src/content/generated/pack.ts (not in git) + checks
-bun tools/content/play.ts           # "virtual player": ambiguous letter rows, options, parts
-bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years 3   # append the daily calendar (never edit released dates)
+npm run content                     # FIRST: content/ → src/content/generated/pack.ts (not in git) + checks; report dist/report.md
+bun tools/content/build.ts --check  # checks only; --release — only `checked`, calendar ≥ 365 days of checked
+bun tools/content/pick.ts           # draft records from the downloaded Dahl text (09-content.md §9); never renumbers
+bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years 3 [--draft]   # append the daily calendar (never edit released dates)
+bun tools/content/fetch.ts          # download missing Dahl sections from Wikisource (own User-Agent, 4 s apart)
+bun tools/content/play.ts           # "virtual player" (planned): ambiguous letter rows, options, parts
 npx expo start                      # dev server
-npm run lint                        # zero warnings
-npx tsc --noEmit                    # typecheck (also -p tools)
-bun test tools/test                 # engine, content, saves, texts, automerge
-npm run export:web && npm run e2e   # web build + Playwright scenario
+npm run lint                        # zero warnings; no Date.now / new Date / Math.random in src/engine
+npm run typecheck                   # content + tsc (app) + tsc -p tools
+bun test tools/test                 # engine, play, content, settings, texts, version
+EXPO_OFFLINE=1 npm run export:web && npm run e2e   # web build + Playwright scenario (`?date=ГГГГ-ММ-ДД`)
 BUKVITSA_WEB_BASE=/bukvitsa/test npx expo export --platform web --output-dir dist-site
 E2E_DIST=dist-site E2E_BASE=/bukvitsa/test npm run e2e   # the same scenario on the site build
 ```
 
 **CI and merging** (studio ADR 0018, 0019; `docs/05-process.md`, «Ветки»): `pr.yml` runs
-typecheck, lint, tests and the content build on every PR to `main` — a required check (while
-there is no `package.json` it passes immediately). A PR that touches no owner path from
-`.github/CODEOWNERS` merges by itself (`automerge.yml`) after green checks and the label
+the content build, typecheck, lint and tests on every PR to `main` — a required check. A PR that touches no owner path from
+`.github/CODEOWNERS` merges by itself (`automerge.yml`, from `Nefeste/gornitsa-kit`, studio ADR 0022) after green checks and the label
 `ревью: ок` from a reviewer in another session — never put that label on your own PR; a new
 commit removes it. Owner paths (`deploy/`, `.github/`, `server/`, `src/money/`, forms and
 privacy, `app.json`, `plugins/`, `content/calendar.yaml`) are merged by the owner. Run the
@@ -122,3 +126,19 @@ charter's `docs/05-rules.md` and are not repeated here. This project's own rules
   sound and storage sit behind adapters with web stubs; the Playwright scenario must stay green.
 - **Russian only** (ADR 0006): no second language in `src/i18n/`, no foreign builds.
 - `applicationId` is `games.gornitsa.bukvitsa` (studio ADR 0006).
+
+## Project map (0.1.0)
+
+- `content/` — records `proverbs/`, `riddles/`, `extra/`, `parts/`, `words/` (one file per puzzle,
+  `09-content.md` §3), `notebooks.yaml`, `calendar.yaml`, `released.json`, `stoplist.txt` (owner), `sections.yaml` and
+  `banned.yaml` (§2 for the script), `sources/dal-1862/` (downloaded Wikisource sections — never edit by hand).
+- `tools/content/` — `fetch.ts`, `dal.ts` (parse a section), `pool.ts` (allowed proverbs, word frequency), `pick.ts`
+  (draft records), `records.ts`, `shuffle.ts` (row and order from `sha256(id:version)`, ADR 0005), `calendar.ts`,
+  `build.ts` (checks §5, `pack.ts`, report).
+- `src/engine/` — `types.ts`, `play.ts` (four interactions, three hints, peeked), `day.ts` (calendar without `Date`),
+  `words.ts`, `letters.ts` (the only engine file with Cyrillic).
+- `src/state/` — `game.ts`, `progress.ts` (results until the events schema of 0.2), `settings.ts`, `storage.ts`,
+  `today.ts` (`?date=` on web), `share.ts`; `src/screens/` — Home, Task (with «Откуда это»), Notebook, Archive, Settings,
+  About; `src/ui/` — tokens, fonts, kit, `Initial` (the drop-cap); `src/i18n/` — all strings and the share text.
+- `tools/test/`, `tools/e2e/browser.ts`.
+

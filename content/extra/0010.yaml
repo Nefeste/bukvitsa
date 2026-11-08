@@ -1,0 +1,20 @@
+id: extra-letter-0010
+version: 1
+kind: extra-letter
+review: draft
+daily: no
+notebooks:
+  - first
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Пора — мера — успех
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Пора_—_Мера_—_Успех
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.pora-mera-uspeh.243.1
+about: "Из раздела «Пора — мера — успех». У Даля рядом — «Пора, что железо: куй, поколе кипит!»."
+text: У кого недолго, а у нас как раз.
+word: 3
+letter: м
+position: 3

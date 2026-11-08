@@ -1,0 +1,19 @@
+id: extra-letter-0209
+version: 1
+kind: extra-letter
+review: draft
+daily: yes
+notebooks: []
+source:
+  work: Даль. Пословицы русского народа
+  edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
+  section: Счастье — удача
+  basis: общественное достояние
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Счастье_—_Удача
+  checked_against: текст Викитеки 08.11.2026, не сверено со сканом
+proverb: dal.schaste-udacha.138.1
+about: Из раздела «Счастье — удача». У Даля рядом — «Такой стих нашел».
+text: Собака есть, да камня нет.
+word: 1
+letter: и
+position: 5
