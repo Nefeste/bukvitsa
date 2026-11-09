@@ -54,7 +54,7 @@ export const T = {
     copied: 'Скопировано',
     beyond: 'Новые задачи дня — в новой версии игры',
     notebooks: 'Тетради',
-    progress: (done: number, total: number, peeked: number) => `${done} из ${total}${peeked ? ` · ${peeked} подсмотрены` : ''}`,
+    progress: (done: number, total: number, peeked: number) => `${done} из ${total}${peeked ? ` · ${peeked} ${peeked % 10 === 1 && peeked % 100 !== 11 ? 'подсмотрена' : 'подсмотрены'}` : ''}`,
     later: 'В следующих версиях',
     archive: 'Архив',
     settings: 'Настройки',

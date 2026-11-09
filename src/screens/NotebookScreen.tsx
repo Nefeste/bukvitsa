@@ -11,6 +11,7 @@ import { prepareRewarded, rewardedReady, TENS, useMoney, watchForTens } from '..
 import { counts } from '../state/progress';
 import { askRating } from '../state/rate';
 import type { Game } from '../state/game';
+import { Cover } from '../ui/Cover';
 import { Button, Header, Txt } from '../ui/kit';
 import { FONTS } from '../ui/fonts';
 import { R, themed } from '../ui/theme';
@@ -50,8 +51,13 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Header title={b.title} onBack={() => setScreen({ name: 'home' })} back={T.task.back} />
-      <Txt dim>{b.blurb}</Txt>
-      <Txt dim testID="notebook-progress">{c.done === b.tasks.length ? T.notebook.done : T.home.progress(c.done, b.tasks.length, c.peeked)}</Txt>
+      <View style={styles.head}>
+        <Cover initial={b.initial} motif={b.motif} size={72} />
+        <View style={{ flex: 1, gap: 6 }}>
+          <Txt dim>{b.blurb}</Txt>
+          <Txt dim testID="notebook-progress">{c.done === b.tasks.length ? T.notebook.done : T.home.progress(c.done, b.tasks.length, c.peeked)}</Txt>
+        </View>
+      </View>
       {locked ? <Txt dim testID="notebook-opened">{T.money.opened(opened, b.tasks.length)}</Txt> : null}
       <View style={styles.grid}>
         {b.tasks.map((id, i) => {
@@ -87,6 +93,7 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
 const useStyles = themed((c, z) =>
   StyleSheet.create({
     wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 },
+    head: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     cell: { width: z(52), height: z(52), borderRadius: R.tile, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
     cellLocked: { backgroundColor: c.cell, borderColor: c.cell },
