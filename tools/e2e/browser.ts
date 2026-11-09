@@ -201,7 +201,7 @@ try {
     await tap(page, 'back');
   }
   await snap(page, 'notebook');
-  check((await page.getByTestId('notebook-progress').textContent())?.includes('5 из') === true && (await page.getByTestId('notebook-progress').textContent())?.includes('1 подсмотрены') === true, 'тетрадь: 5 решены, 1 подсмотрена');
+  check((await page.getByTestId('notebook-progress').textContent())?.includes('5 из') === true && (await page.getByTestId('notebook-progress').textContent())?.includes('1 подсмотрена') === true, 'тетрадь: 5 решены, 1 подсмотрена');
   await tap(page, 'back');
 
   // деньги (specs/2026-10-money.md): ролик по желанию открывает десять задач закрытой тетради; перед первым

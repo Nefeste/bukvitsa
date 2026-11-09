@@ -30,6 +30,7 @@ const RU = /^[а-яё]+(?:-[а-яё]+)*$/;
 
 interface Book {
   key: string;
+  initial?: string;
   title: string;
   blurb: string;
   free?: boolean | string;
@@ -190,11 +191,15 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
   // версиях»; бесплатная — обязательно
   const unchecked = (key: string) => recs.filter(r => r.notebooks?.includes(key) && r.review !== 'checked').length;
   const size = (key: string) => recs.filter(r => r.notebooks?.includes(key)).length;
-  const notebooks: Notebook[] = books.map(b => {
+  const notebooks: Notebook[] = books.map((b, i) => {
+    const initial = String(b.initial ?? b.title[0] ?? '').toUpperCase();
+    if (!/^[А-ЯЁ]$/.test(initial)) errors.push(`тетрадь ${b.key}: буквица обложки «${initial}» — не одна русская буква`);
     const left = opts.release ? unchecked(b.key) + (size(b.key) < NOTEBOOK_MIN && !yes(b.free) ? 1 : 0) : 0;
     if (left && yes(b.free)) errors.push(`тетрадь ${b.key}: бесплатная, а не сверено ${left} — в выпуск она идёт целиком`);
     return {
       key: b.key,
+      initial,
+      motif: i % 3,
       title: b.title,
       blurb: b.blurb,
       free: yes(b.free),

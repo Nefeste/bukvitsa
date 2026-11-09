@@ -10,6 +10,7 @@ import { counts } from '../state/progress';
 import { shareOrCopy } from '../state/share';
 import type { Game } from '../state/game';
 import { Button, Card, Txt } from '../ui/kit';
+import { Cover } from '../ui/Cover';
 import { Initial } from '../ui/Initial';
 import { S, themed, useLook } from '../ui/theme';
 
@@ -64,9 +65,12 @@ export function HomeScreen({ game }: { game: Game }) {
         const c = counts(results, b.tasks);
         return (
           <Pressable key={b.key} testID={`notebook-${b.key}`} disabled={!open} onPress={() => setScreen({ name: 'notebook', key: b.key })} style={({ pressed }) => [styles.book, !open && styles.closed, pressed && { opacity: 0.8 }]}>
-            <Txt style={{ fontWeight: '600' }}>{b.title}</Txt>
-            <Txt dim>{b.blurb}</Txt>
-            <Txt dim>{open ? T.home.progress(c.done, b.tasks.length, c.peeked) : T.home.later}</Txt>
+            <Cover initial={b.initial} motif={b.motif} size={look.z(48)} dim={!open} testID={`cover-${b.key}`} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Txt style={{ fontWeight: '600' }}>{b.title}</Txt>
+              <Txt dim>{b.blurb}</Txt>
+              <Txt dim>{open ? T.home.progress(c.done, b.tasks.length, c.peeked) : T.home.later}</Txt>
+            </View>
           </Pressable>
         );
       })}
@@ -98,7 +102,7 @@ const useStyles = themed((c, z) =>
     wrap: { padding: 16, gap: 12, backgroundColor: c.linen, flexGrow: 1 },
     title: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8 },
     row: { flexDirection: 'row', gap: 10 },
-    book: { backgroundColor: c.paper, borderRadius: 10, borderWidth: 1, borderColor: c.line, padding: 14, gap: 4 },
+    book: { backgroundColor: c.paper, borderRadius: 10, borderWidth: 1, borderColor: c.line, padding: 14, gap: 14, flexDirection: 'row', alignItems: 'flex-start' },
     closed: { backgroundColor: c.cell, borderColor: c.cell },
   }),
 );

@@ -107,6 +107,10 @@ describe('сборка content/', () => {
     // среда без старых слов — конец пословицы (bukvitsa#6), не пословица с пропуском
     for (const [d, id] of days) if (weekday(d) === 2) expect(['old-word', 'ending']).toContain(kinds.get(id) ?? '');
   });
+  test('обложки: у каждой тетради буквица — одна заглавная русская буква; соседние тетради — разные узоры', () => {
+    for (const b of pack.notebooks) expect(b.initial).toMatch(/^[А-ЯЁ]$/);
+    for (let i = 1; i < pack.notebooks.length; i++) expect(pack.notebooks[i].motif).not.toBe(pack.notebooks[i - 1].motif);
+  });
   test('первая тетрадь бесплатна; в ней пять видов и «Тайнопись» (конец пословицы — только в задаче дня)', () => {
     const first = pack.notebooks.find(b => b.key === 'first')!;
     expect(first.free).toBe(true);

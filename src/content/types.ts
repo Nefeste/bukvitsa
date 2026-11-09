@@ -5,6 +5,10 @@ import type { Task } from '../engine/types';
 
 export interface Notebook {
   key: string;
+  /** буквица обложки — заглавная буква темы (content/notebooks.yaml) */
+  initial: string;
+  /** узор полосы-рушника под буквицей: 0 — ромбы, 1 — кресты, 2 — ёлочка (по порядку тетради) */
+  motif: number;
   title: string;
   blurb: string;
   free: boolean;
