@@ -4,16 +4,16 @@ kind: proverb
 review: draft
 daily: no
 notebooks:
-  - winter
+  - people
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Надзор — хозяин
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Надзор_—_Хозяин
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.792.1
-about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
-text: Юрий холодный оброк собирает.
-answer: холодный
-gap: 2
+proverb: dal.nadzor-hozyain.47.1
+about: Из раздела «Надзор — хозяин». У Даля рядом — «От беспорядка и сильная рать погибает».
+text: Без кота мышам Масленица.
+answer: мышам
+gap: 3

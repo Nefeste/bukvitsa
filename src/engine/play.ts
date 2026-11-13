@@ -185,8 +185,10 @@ export function pickPart(task: Task, p: Play, part: number): Play {
   const chosen = [...p.chosen, part];
   const parts = task.parts ?? [];
   if (chosen.length < parts.length) return { ...p, chosen, shake: false };
-  const order = task.answer.split(',').map(Number);
-  const ok = chosen.every((c, i) => parts[c] === parts[order[i]]);
+  const ok = [task.answer, ...(task.also ?? [])].some(a => {
+    const order = a.split(',').map(Number);
+    return chosen.every((c, i) => parts[c] === parts[order[i]]);
+  });
   return ok ? solved({ ...p, chosen }) : wrong(p, { chosen: p.chosen.slice(0, p.fixed) });
 }
 

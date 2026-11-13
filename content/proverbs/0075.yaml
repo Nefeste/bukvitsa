@@ -4,16 +4,16 @@ kind: proverb
 review: draft
 daily: no
 notebooks:
-  - winter
+  - work
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Помощь — кстати
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Помощь_—_Кстати
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.140.2
-about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
-text: Сани на поветь.
-answer: поветь
-gap: 3
+proverb: dal.pomosch-kstati.210.1
+about: Из раздела «Помощь — кстати». У Даля рядом — «Клин клином выколачивают».
+text: Ни к селу, ни к городу.
+answer: городу
+gap: 6

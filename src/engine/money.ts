@@ -12,6 +12,8 @@ export const AD_RULES = {
   minGapMs: 3 * 60_000,
   /** ролик по желанию открывает столько задач закрытой тетради */
   tens: 10,
+  /** в каждой платной тетради столько первых задач открыто всем — попробовать до покупки */
+  taste: 5,
 } as const;
 
 export interface AdCounters {
@@ -61,12 +63,16 @@ export function normalizeCounters(raw: unknown): AdCounters {
 export type Access = 'open' | 'locked';
 
 /**
- * Первая тетрадь — бесплатно; с «Буквицей+» — все; иначе открыты первые `opened` задач тетради —
- * их открывают ролики по желанию, по десять, навсегда (счётчик, не срок — ADR студии 0010).
+ * Первая тетрадь — бесплатно; с «Буквицей+» — все; иначе открыты первые пять задач тетради (`taste`) и ещё
+ * `opened` за ними — их открывают ролики по желанию, по десять, навсегда (счётчик, не срок — ADR студии 0010).
  */
 export function canOpen(index: number, free: boolean, plus: boolean, opened: number): Access {
-  return free || plus || index < opened ? 'open' : 'locked';
+  return free || plus || index < AD_RULES.taste + opened ? 'open' : 'locked';
 }
 
-/** Ролик по желанию досмотрен: ещё десять задач тетради открыты, не больше, чем в ней есть. */
-export const afterTens = (opened: number, total: number): number => Math.min(total, opened + AD_RULES.tens);
+/** Сколько задач тетради из `total` открыто игроку. */
+export const openCount = (free: boolean, plus: boolean, opened: number, total: number): number =>
+  free || plus ? total : Math.min(total, AD_RULES.taste + opened);
+
+/** Ролик по желанию досмотрен: ещё десять задач тетради открыты, не больше, чем в ней закрыто. */
+export const afterTens = (opened: number, total: number): number => Math.min(Math.max(0, total - AD_RULES.taste), opened + AD_RULES.tens);

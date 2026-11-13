@@ -2,18 +2,17 @@ id: proverb-0035
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - home
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Гость — хлебосольство
+  section: Терпение — надежда
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Гость_—_Хлебосольство
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Терпение_—_Надежда
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.gost-hlebosolstvo.31.1
-about: Из раздела «Гость — хлебосольство». У Даля рядом — «Куры разодрались — к гостям либо к вестям».
-text: Живет за рекой, а к нам ни ногой.
-answer: ногой
-gap: 8
+proverb: dal.terpenie-nadezhda.77.1
+about: Из раздела «Терпение — надежда». У Даля рядом — «Власть создателя».
+text: Капля камень долбит.
+answer: долбит
+gap: 3

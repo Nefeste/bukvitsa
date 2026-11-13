@@ -4,16 +4,16 @@ kind: proverb
 review: draft
 daily: no
 notebooks:
-  - winter
+  - work
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Много — мало
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Много_—_Мало
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.775.1
-about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
-text: Каков Платон и Роман, такова и зима.
-answer: зима
-gap: 7
+proverb: dal.mnogo-malo.37.1
+about: Из раздела «Много — мало». У Даля рядом — «Из многих малых выходит одно большое».
+text: Мал соловей, да голос велик.
+answer: велик
+gap: 5

@@ -2,8 +2,8 @@ id: word-0001
 version: 1
 kind: old-word
 review: draft
-daily: yes
-notebooks: [first, things]
+daily: no
+notebooks: []
 
 source:
   work: Даль. Толковый словарь живого великорусского языка

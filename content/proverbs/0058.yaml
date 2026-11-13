@@ -4,16 +4,16 @@ kind: proverb
 review: draft
 daily: no
 notebooks:
-  - word
+  - luck
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Язык — речь
+  section: Упорство
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Язык_—_Речь
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Упорство
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.yazyk-rech.104.1
-about: Из раздела «Язык — речь». У Даля рядом — «Язык телу якорь».
-text: Молча отмолчишься, как в саду отсидишься.
-answer: саду
-gap: 5
+proverb: dal.uporstvo.13.1
+about: Из раздела «Упорство». У Даля рядом — «Хотя прям, да упрям».
+text: Своя воля страшней неволи.
+answer: неволи
+gap: 4

@@ -111,10 +111,10 @@ describe('сборка content/', () => {
     for (const b of pack.notebooks) expect(b.initial).toMatch(/^[А-ЯЁ]$/);
     for (let i = 1; i < pack.notebooks.length; i++) expect(pack.notebooks[i].motif).not.toBe(pack.notebooks[i - 1].motif);
   });
-  test('первая тетрадь бесплатна; в ней пять видов и «Тайнопись» (конец пословицы — только в задаче дня)', () => {
+  test('первая тетрадь бесплатна; в ней шесть видов задач (старое слово — пока только в черновиках)', () => {
     const first = pack.notebooks.find(b => b.key === 'first')!;
     expect(first.free).toBe(true);
     const kinds = new Set(first.tasks.map(id => pack.tasks.find(t => t.id === id)!.kind));
-    expect([...kinds].sort()).toEqual(['cipher', 'extra-letter', 'old-word', 'parts', 'proverb', 'riddle']);
+    expect([...kinds].sort()).toEqual(['cipher', 'ending', 'extra-letter', 'parts', 'proverb', 'riddle']);
   });
 });

@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - winter
+  - people
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Хорошо — худо
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Хорошо_—_Худо
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.106.1
-about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
-text: Тепло светит солнышко, да Авдотьей поглядывает — либо снег, либо дождь.
+proverb: dal.horosho-hudo.119.1
+about: Из раздела «Хорошо — худо». У Даля рядом — «Так хорошо, что любо».
+text: Про доброе дело говори смело.
 word: 3
-letter: е
-position: 3
+letter: а
+position: 2

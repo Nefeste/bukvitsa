@@ -33,11 +33,9 @@ export const STOP = new Set(
     'чтоб чтобы будто словно авось пусть пускай очень более менее самый самая самое').split(' '),
 );
 
-let FREQ = new Map<string, number>();
 let KNOWN = new Set<string>();
 let TAILS: { id: string; tail: string }[] = [];
 let SHAPES: ReturnType<typeof shapeIndex> = new Map();
-const freqOf = (w: string) => FREQ.get(norm(w)) ?? 0;
 
 function contentWords(text: string): number[] {
   const ws = words(text);
@@ -47,14 +45,17 @@ function contentWords(text: string): number[] {
     .map(({ i }) => i);
 }
 
-/** Пословица с пропуском: самое обиходное знаменательное слово 4–9 букв, не первое, если есть другие. */
+/**
+ * Пословица с пропуском: последнее знаменательное слово 3–10 букв — на нём у пословицы обычно ударение и
+ * рифма («Тише едешь — дальше ____»), так что слово можно вывести, а не только вспомнить. Не первое, если есть другие.
+ */
 export function gapOf(text: string): number | null {
   const ws = words(text);
   if (ws.length < 3 || ws.length > 10) return null;
-  let cand = contentWords(text).filter(i => ws[i].length >= 4 && ws[i].length <= 9);
+  let cand = contentWords(text).filter(i => ws[i].length >= 3 && ws[i].length <= 10);
   if (cand.length > 1) cand = cand.filter(i => i > 0);
   if (!cand.length) return null;
-  return cand.reduce((a, b) => (freqOf(ws[b]) > freqOf(ws[a]) || (freqOf(ws[b]) === freqOf(ws[a]) && b > a) ? b : a));
+  return cand[cand.length - 1];
 }
 
 /** По частям: 6–12 слов, 3–4 части, границы — только по знакам препинания. */
@@ -160,7 +161,7 @@ export function riddlesOf(pool: Pool, stems: string[]): Riddle[] {
     // строка разбилась на несколько пословиц — у загадки так не бывает, такую строку не берём
     if (mainReading(p.original).text !== p.text) continue;
     let a = p.note.trim().toLowerCase().replace(/[.!]$/, '');
-    if (/^(то же|он же|она же|оно же|те же)\b/.test(a)) a = prev;
+    if (/^(то же|он же|она же|оно же|те же)(?![а-яё])/.test(a)) a = prev;
     else prev = /^[а-яё]+$/.test(a) ? a : '';
     if (!/^[а-яё]{3,12}$/.test(a)) continue;
     if (RIDDLE_NO.some(s => a.startsWith(s))) continue;
@@ -194,25 +195,34 @@ export function aboutOf(p: Proverb, neighbour: string | undefined): string {
 
 /** Цели — docs/08-game-design.md, «Тетради» и «Задача дня»; состав тетрадей — content/notebooks.yaml. */
 const PLAN = {
-  /** тетрадь: сколько задач и каких видов */
-  notebook: 40,
-  firstMix: { proverb: 9, riddle: 8, 'extra-letter': 11, parts: 11 } as Record<string, number>,
-  /** «Тайнопись» в первой тетради (решение владельца 08.11.2026, #28) — сверх 40 */
-  firstCipher: 6,
-  bookMix: ['proverb', 'extra-letter', 'parts', 'proverb'] as Kind[],
+  /** первая тетрадь: 48 задач из отбора редактора и шесть загадок */
+  first: { proverb: 14, ending: 9, 'extra-letter': 9, parts: 10, cipher: 6 } as Record<string, number>,
+  firstRiddles: 6,
+  /** тематическая тетрадь — 40 задач из отбора редактора */
+  book: { proverb: 12, ending: 7, 'extra-letter': 7, parts: 7, cipher: 7 } as Record<string, number>,
+  /** первые недели задачи дня — из отбора редактора (сколько найдётся, не больше) */
+  dailyKnown: { proverb: 30, ending: 14, 'extra-letter': 14, parts: 14, cipher: 14 } as Record<string, number>,
   /** пул задач дня на три года (1096 дней): пословицы — и на дни без загадок и старых слов */
   daily: { proverb: 800, 'extra-letter': 160, parts: 160, ending: 160, cipher: 160 } as Record<string, number>,
 };
 
+/** Отбор редактора (content/known.txt): номера пословиц источника по порядку, от самых известных. */
+export function readKnown(root: string): string[] {
+  return readFileSync(join(root, 'content', 'known.txt'), 'utf8')
+    .split('\n')
+    .map(l => l.split('#')[0].trim())
+    .filter(Boolean);
+}
+
 interface Book {
   key: string;
   sections?: string[];
-  words?: string[];
+  /** тетрадь берёт и пословицы разделов, не названных ни в одной тетради */
+  rest?: boolean | string;
 }
 
 function main() {
   const pool = loadPool(ROOT);
-  FREQ = pool.freq;
   SHAPES = shapeIndex([...pool.byId.values()].map(q => q.text));
   KNOWN = new Set([...pool.byId.values()].map(q => tailKey(q.text.replace(' — ', ' '))));
   TAILS = pool.allowed.flatMap(q => {
@@ -297,7 +307,6 @@ function main() {
       : kind === 'proverb' ? gapOf(p.text) != null : kind === 'parts' ? (partsOf(p.text, 3) ?? partsOf(p.text, 4)) != null : extraOf('probe', p.text) != null;
 
   const hashOrder = (salt: string) => (a: Proverb, b: Proverb) => fnv1a(`${salt}:${a.id}`) - fnv1a(`${salt}:${b.id}`);
-  const inBook = (key: string) => existing.filter(r => r.notebooks?.includes(key)).length;
   const made: Rec[] = [];
   const emit = (r: Rec | null) => {
     if (!r) return false;
@@ -306,55 +315,69 @@ function main() {
     return true;
   };
 
-  // загадки: сперва в первую тетрадь, остальные — в пул задач дня
-  const riddles = riddlesOf(pool, stems).filter(r => !usedProverb.has(r.id));
+  const known = readKnown(ROOT);
+  const rank = new Map(known.map((id, i) => [id, i]));
+  const knownPool = known.map(id => pool.byId.get(id)).filter((p): p is Proverb => !!p && p.title !== 'Загадки' && pool.allowed.includes(p));
+
+  // загадки — только из отбора редактора: отгадка, которую знают сегодня; сперва в первую тетрадь, остальные — в задачу дня
+  const riddles = riddlesOf(pool, stems)
+    .filter(r => rank.has(r.id) && !usedProverb.has(r.id))
+    .sort((a, c) => rank.get(a.id)! - rank.get(c.id)!);
   let firstRiddles = existing.filter(r => r.kind === 'riddle' && r.notebooks?.includes('first')).length;
   for (const rd of riddles) {
     const p = pool.byId.get(rd.id)!;
-    const toFirst = firstRiddles < PLAN.firstMix.riddle;
+    const toFirst = firstRiddles < PLAN.firstRiddles;
     if (toFirst) firstRiddles++;
     emit({
       id: nextId('riddle'), version: 1, kind: 'riddle', review: 'draft', daily: toFirst ? 'no' : 'yes', notebooks: toFirst ? ['first'] : [],
       source: { ...sourceOf(p), section: 'Загадки' }, proverb: p.id, text: p.text, answer: rd.answer,
-      about: `Загадка из раздела «Загадки» сборника Даля. Отгадка у Даля — «${rd.note.replace(/\.$/, '')}».`,
+      about: 'Загадка из раздела «Загадки» сборника Даля.',
     });
     take(p);
   }
 
-  // тетради
-  for (const b of books) {
-    if (b.key.startsWith('riddles-') || b.key === 'things' || b.key === 'people') continue; // загадки и старые слова — руками (§8)
-    const stemsB = (b.words ?? []).map(s => s.toLowerCase());
-    const cand = pool.allowed
-      .filter(p => !b.sections || b.sections.includes(p.title))
-      .filter(p => !stemsB.length || words(p.text).some(w => stemsB.some(s => norm(w).startsWith(s))))
-      .sort(hashOrder(b.key));
-    let n = inBook(b.key);
-    let turn = 0;
-    const mix = b.key === 'first' ? (['proverb', 'extra-letter', 'parts'] as Kind[]) : PLAN.bookMix;
-    while (n < PLAN.notebook) {
-      const kind = mix[turn++ % mix.length];
-      const p = cand.find(x => free(x) && fits(kind, x));
-      if (!p) break;
-      if (emit(make(kind, p, false, [b.key]))) {
+  /**
+   * Добрать задачи из отбора редактора до целей по видам. Редкие виды — первыми: пословица, годная в тайнопись или
+   * по частям, идёт туда, а короткие известные остаются пропуску и концу.
+   */
+  const ORDER: Kind[] = ['cipher', 'parts', 'ending', 'extra-letter', 'proverb'];
+  const fill = (cand: Proverb[], goal: Record<string, number>, have: (k: Kind) => number, daily: boolean, books: string[]) => {
+    const left = new Map(ORDER.map(k => [k, Math.max(0, (goal[k] ?? 0) - have(k))]));
+    for (const p of cand) {
+      if (![...left.values()].some(n => n > 0)) break;
+      if (!free(p)) continue;
+      // вид с наибольшей долей недобора среди годных; при равенстве — более редкий
+      const kind = ORDER.filter(k => left.get(k)! > 0 && fits(k, p)).sort((a, c) => left.get(c)! / goal[c] - left.get(a)! / goal[a])[0];
+      if (!kind) continue;
+      if (emit(make(kind, p, daily, books))) {
         take(p);
-        n++;
+        left.set(kind, left.get(kind)! - 1);
       }
-      if (turn > 4000) break;
     }
-  }
+    return [...left].filter(([, n]) => n > 0).map(([k, n]) => `${k} −${n}`);
+  };
+  const inBookOf = (key: string) => (k: Kind) => existing.filter(r => r.kind === k && r.notebooks?.includes(key)).length;
 
-  // «Тайнопись» в первой тетради — из её разделов, сверх 40 задач
-  const firstBook = books.find(b => b.key === 'first');
-  let firstCiphers = existing.filter(r => r.kind === 'cipher' && r.notebooks?.includes('first')).length;
-  for (const p of pool.allowed.filter(q => !firstBook?.sections || firstBook.sections.includes(q.title)).sort(hashOrder('first-cipher'))) {
-    if (firstCiphers >= PLAN.firstCipher) break;
-    if (!free(p) || !fits('cipher', p)) continue;
-    if (emit(make('cipher', p, false, ['first']))) {
-      take(p);
-      firstCiphers++;
-    }
+  // первая тетрадь — самые известные из отбора
+  const short: string[] = [];
+  const s1 = fill(knownPool, PLAN.first, inBookOf('first'), false, ['first']);
+  if (s1.length) short.push(`first: ${s1.join(', ')}`);
+
+  // первые недели задачи дня — следующие по известности
+  const dailyHave = (k: Kind) => existing.filter(r => r.kind === k && (r.daily === 'yes' || r.daily === true) && r.proverb && rank.has(r.proverb)).length;
+  const s2 = fill(knownPool, PLAN.dailyKnown, dailyHave, true, []);
+  if (s2.length) short.push(`задача дня из отбора: ${s2.join(', ')}`);
+
+  // тематические тетради — из отбора, по разделам Даля; тетрадь с `rest` берёт и разделы, не названные нигде
+  const named = new Set(books.flatMap(b => b.sections ?? []));
+  for (const b of books) {
+    if (b.key === 'first') continue;
+    const rest = b.rest === true || b.rest === 'yes';
+    const cand = knownPool.filter(p => b.sections?.includes(p.title) || (rest && !named.has(p.title)));
+    const s3 = fill(cand, PLAN.book, inBookOf(b.key), false, [b.key]);
+    if (s3.length) short.push(`${b.key}: ${s3.join(', ')}`);
   }
+  if (short.length) console.log(`не хватило в отборе редактора — ${short.join('; ')}`);
 
   // пул задач дня — сперва самые обиходные пословицы, внутри ступени — по хешу
   const tier = (p: Proverb) => Math.floor(commonness(p.text, pool.freq));

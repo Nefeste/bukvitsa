@@ -15,6 +15,7 @@ import { AboutScreen } from './src/screens/AboutScreen';
 import { PlusScreen } from './src/screens/PlusScreen';
 import { ConsentScreen } from './src/screens/ConsentScreen';
 import { AdScreen } from './src/screens/AdScreen';
+import { CollectionScreen } from './src/screens/CollectionScreen';
 import { ReportScreen } from './src/screens/ReportScreen';
 import { installCrashHandlers } from './src/state/crashlog';
 import { useLook } from './src/ui/theme';
@@ -55,6 +56,7 @@ export default function App() {
               {screen.name === 'settings' ? <SettingsScreen game={game} /> : null}
               {screen.name === 'about' ? <AboutScreen game={game} /> : null}
               {screen.name === 'plus' ? <PlusScreen game={game} /> : null}
+              {screen.name === 'collection' ? <CollectionScreen game={game} /> : null}
               {screen.name === 'consent' ? <ConsentScreen game={game} next={screen.next} /> : null}
               {screen.name === 'ad' ? <AdScreen game={game} next={screen.next} /> : null}
               {screen.name === 'report' ? <ReportScreen game={game} task={screen.task} screen={screen.screen} back={screen.back} /> : null}

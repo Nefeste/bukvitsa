@@ -52,6 +52,8 @@ export interface Rec {
   page?: number;
   /** parts: части в правильном порядке */
   parts?: string[];
+  /** parts: пары равноправных частей (номера с нуля) — их порядок между собой игра принимает любым */
+  swap?: number[][];
   about: string;
   notes?: string;
   /** путь файла — для сообщений сборки */

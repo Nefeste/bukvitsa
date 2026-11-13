@@ -2,15 +2,16 @@ id: cipher-0033
 version: 1
 kind: cipher
 review: draft
-daily: yes
-notebooks: []
+daily: no
+notebooks:
+  - luck
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Толк — бестолочь
+  section: Терпение — надежда
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Толк_—_Бестолочь
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Терпение_—_Надежда
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.tolk-bestoloch.545.1
-about: Из раздела «Толк — бестолочь». У Даля рядом — «Перекрестись да выспись!».
-text: Хоть криво впряг, да поехал так.
+proverb: dal.terpenie-nadezhda.97.1
+about: Из раздела «Терпение — надежда». У Даля рядом — «Власть создателя».
+text: Кто с вечера плачет, поутру засмеется.

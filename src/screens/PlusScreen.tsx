@@ -3,6 +3,7 @@
 // говорит о покупке: главная, закрытая тетрадь и короткий экран перед роликом.
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
+import { content } from '../content';
 import { T } from '../i18n';
 import { billing, buyPlus, openRuStore, syncRights, useMoney, type Availability } from '../money';
 import type { Game } from '../state/game';
@@ -37,6 +38,7 @@ export function PlusScreen({ game }: { game: Game }) {
     setBusy(false);
     setNote(a.ok ? T.money.restored : T.money.why[a.why]);
   };
+  const paid = content.notebooks.filter(b => !b.free && b.tasks.length > 0);
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Header title={T.money.plus} onBack={() => game.setScreen({ name: 'home' })} back={T.task.back} />
@@ -46,6 +48,7 @@ export function PlusScreen({ game }: { game: Game }) {
         </Card>
       ) : (
         <Card>
+          <Txt testID="plus-books">{T.money.whatBooks(paid.length, paid.reduce((n, b) => n + b.tasks.length, 0))}</Txt>
           {T.money.what.map(w => (
             <Txt key={w}>· {w}</Txt>
           ))}

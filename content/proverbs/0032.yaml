@@ -2,18 +2,17 @@ id: proverb-0032
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - labor
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Работа — праздность
+  section: Толк — бестолочь
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Работа_—_Праздность
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Толк_—_Бестолочь
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.rabota-prazdnost.320.1
-about: Из раздела «Работа — праздность». У Даля рядом — «Плохо жить без забот, худо без доброго слова».
-text: Прощай, квашня, я гулять ушла!
-answer: ушла
+proverb: dal.tolk-bestoloch.594.1
+about: Из раздела «Толк — бестолочь». У Даля рядом — «Перекрестись да выспись!».
+text: В чужом глазу сучок велик.
+answer: велик
 gap: 5

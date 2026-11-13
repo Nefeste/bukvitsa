@@ -2,18 +2,17 @@ id: proverb-0093
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - winter
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Пища
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Пища
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.61.1
-about: "Из раздела «Месяцеслов». У Даля в скобках: к неурожаю. У Даля рядом — «Январь»."
-text: В Сретенье метель дорогу переметает, корм подметает.
-answer: дорогу
-gap: 4
+proverb: dal.pischa.520.1
+about: Из раздела «Пища». У Даля рядом — «Хлеб всему голова».
+text: Не все в живот, что живет.
+answer: живет
+gap: 6

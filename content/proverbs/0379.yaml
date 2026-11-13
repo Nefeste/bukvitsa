@@ -11,8 +11,8 @@ source:
   basis: общественное достояние
   url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Правда_—_Кривда
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.pravda-krivda.221.1
+proverb: dal.pravda-krivda.221.2
 about: Из раздела «Правда — кривда». У Даля рядом — «И Мамай правды не съел».
-text: Что всем, то и одному.
+text: Что одному, то и всем.
 answer: одному
-gap: 5
+gap: 2

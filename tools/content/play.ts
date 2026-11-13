@@ -116,7 +116,8 @@ export function partsRivals(t: Task, bigrams: Map<string, number>): string[][] {
     return s;
   };
   const best = score(right);
-  const seen = new Set([right.join('|')]);
+  // равноправные порядки (`also`) — тоже верные
+  const seen = new Set([right.join('|'), ...(t.also ?? []).map(a => a.split(',').map(i => parts[Number(i)]).join('|'))]);
   const out: string[][] = [];
   for (const p of perms(parts.length)) {
     const seq = p.map(i => parts[i]);

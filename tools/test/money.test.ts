@@ -1,7 +1,7 @@
 // Деньги: границы рекламы (08-game-design.md, «Реклама»), тетради по правам (canOpen), права по списку
 // покупок RuStore (src/money/rustoreRules.ts). Чистые функции — без телефона, SDK и сети.
 import { describe, expect, test } from 'bun:test';
-import { AD_RULES, adAllowed, afterAd, afterSolved, afterTens, canOpen, EMPTY_COUNTERS, normalizeCounters, withInstallDay, type AdCounters } from '../../src/engine/money';
+import { AD_RULES, adAllowed, afterAd, afterSolved, afterTens, canOpen, openCount, EMPTY_COUNTERS, normalizeCounters, withInstallDay, type AdCounters } from '../../src/engine/money';
 import { ownedOf } from '../../src/money/rustoreRules';
 import type { RsPurchase } from '@gornitsa/kit/rustore-pay';
 
@@ -40,11 +40,17 @@ describe('тетради по правам', () => {
   test('первая — бесплатно; с «Буквицей+» — все; иначе — открытые роликами, по десять, не больше тетради', () => {
     expect(canOpen(39, true, false, 0)).toBe('open');
     expect(canOpen(39, false, true, 0)).toBe('open');
-    expect(canOpen(0, false, false, 0)).toBe('locked');
-    expect(canOpen(9, false, false, 10)).toBe('open');
-    expect(canOpen(10, false, false, 10)).toBe('locked');
+    // первые пять задач платной тетради открыты всем, ролики открывают по десять за ними
+    expect(canOpen(4, false, false, 0)).toBe('open');
+    expect(canOpen(5, false, false, 0)).toBe('locked');
+    expect(canOpen(14, false, false, 10)).toBe('open');
+    expect(canOpen(15, false, false, 10)).toBe('locked');
     expect(afterTens(0, 40)).toBe(10);
-    expect(afterTens(35, 40)).toBe(40);
+    expect(afterTens(30, 40)).toBe(35);
+    expect(openCount(false, false, 0, 40)).toBe(5);
+    expect(openCount(false, false, 35, 40)).toBe(40);
+    expect(openCount(false, true, 0, 40)).toBe(40);
+    expect(openCount(true, false, 0, 54)).toBe(54);
   });
 });
 

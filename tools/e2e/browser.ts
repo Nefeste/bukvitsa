@@ -157,14 +157,15 @@ try {
   const right = dw.options!.findIndex(o => o === dw.answer);
   await tap(page, `option-${right}`);
   await page.getByTestId('source').waitFor();
-  check((await page.getByTestId('verdict').textContent()) === 'Верно', 'конец пословицы: решена');
+  check((await page.getByTestId('verdict').textContent())?.startsWith('Верно') === true, 'конец пословицы: решена');
   await tap(page, 'home');
 
   // первая тетрадь: по задаче каждого вида
   const first = PACK.notebooks.find(b => b.key === 'first')!;
-  check((await page.getByTestId('notebook-riddles-nature').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('notebook-riddles-nature').textContent())?.includes('В следующих версиях') === true, 'пустая тетрадь — «В следующих версиях»');
+  // «Продолжить» с нуля ведёт в первую тетрадь, к первой задаче
+  check((await page.getByTestId('resume-at').textContent())?.startsWith('Первая тетрадь · задача 1 из') === true, 'главная: «Продолжить» — первая задача первой тетради');
   await tap(page, 'notebook-first');
-  const kinds = ['proverb', 'riddle', 'extra-letter', 'parts', 'old-word', 'cipher'] as const;
+  const kinds = ['proverb', 'riddle', 'extra-letter', 'parts', 'ending', 'cipher'] as const;
   for (const kind of kinds) {
     const k = first.tasks.findIndex(id => task(id).kind === kind);
     await tap(page, `cell-${k}`);
@@ -186,7 +187,7 @@ try {
       await tap(page, 'hint-1');
       check((await page.getByTestId(`code-${code.indexOf(free[0])}`).getAttribute('aria-label'))?.endsWith('пусто') === true, 'тайнопись: «Убрать неверные» сняла неверную букву');
       await tap(page, 'hint-2');
-      check((await page.getByTestId('verdict').textContent()) === 'Верно', 'тайнопись: «Открыть букву» дописала последнюю — решена');
+      check((await page.getByTestId('verdict').textContent())?.startsWith('Верно') === true, 'тайнопись: «Открыть букву» дописала последнюю — решена');
     } else if (kind === 'riddle') {
       // все три подсказки: задача подсмотрена
       for (const h of [1, 2, 3]) await tap(page, `hint-${h}`);
@@ -194,7 +195,7 @@ try {
     } else {
       if (kind === 'proverb') await tap(page, 'hint-1');
       await solve(page, task(first.tasks[k]), kind === 'parts');
-      check((await page.getByTestId('verdict').textContent()) === 'Верно', `${kind}: решена`);
+      check((await page.getByTestId('verdict').textContent())?.startsWith('Верно') === true, `${kind}: решена`);
     }
     if (kind === 'extra-letter') await snap(page, 'extra-letter');
     await tap(page, 'more');
@@ -202,21 +203,34 @@ try {
   }
   await snap(page, 'notebook');
   check((await page.getByTestId('notebook-progress').textContent())?.includes('5 из') === true && (await page.getByTestId('notebook-progress').textContent())?.includes('1 подсмотрена') === true, 'тетрадь: 5 решены, 1 подсмотрена');
+  check((await page.getByTestId('notebook-progress').textContent())?.includes('начисто') === true && (await page.getByText('★', { exact: true }).count()) > 0, 'тетрадь: решённые начисто отмечены звёздочкой и сосчитаны');
+  await tap(page, 'back');
+  // сборник: всё решённое (две задачи дня и пять задач тетради), звание впереди; «Продолжить» — следующая нерешённая
+  check((await page.getByTestId('collection-count').textContent())?.startsWith('Решено 7 из') === true, 'главная: в сборнике семь решённых');
+  await tap(page, 'collection');
+  check((await page.getByTestId('rank-name').textContent()) === 'Звания пока нет' && (await page.getByTestId('rank-next').textContent())?.includes('«Ученик» — ещё 3') === true, 'сборник: до звания «Ученик» — ещё три задачи');
+  check((await page.getByTestId('collection-item').count()) === 7, 'сборник: семь решённых пословиц и загадок списком');
+  await snap(page, 'collection');
+  await tap(page, 'back');
+  await tap(page, 'resume-go');
+  await page.getByTestId('question').or(page.getByTestId('option-0')).first().waitFor();
+  check(true, '«Продолжить» открывает следующую нерешённую задачу тетради');
+  await tap(page, 'back');
   await tap(page, 'back');
 
   // деньги (specs/2026-10-money.md): ролик по желанию открывает десять задач закрытой тетради; перед первым
   // роликом — экран согласия; межстраничный — только между задачами тетради, со второго дня, если пора
-  const labor = PACK.notebooks.find(b => b.key === 'labor')!;
+  const labor = PACK.notebooks.find(b => b.key === 'mind')!;
   const ads = () => page.evaluate(() => (globalThis as unknown as { __bukvitsaAds?: { shown: string[]; personal: boolean | null } }).__bukvitsaAds ?? { shown: [], personal: null });
-  await tap(page, 'notebook-labor');
-  check((await page.getByTestId('cell-0').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('open-plus').count()) === 1, 'закрытая тетрадь: задачи закрыты, «Открыть в „Буквице+“»');
+  await tap(page, 'notebook-mind');
+  check((await page.getByTestId('cell-4').getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('cell-5').getAttribute('aria-disabled')) === 'true' && (await page.getByTestId('open-plus').count()) === 1, 'платная тетрадь: первые пять задач открыты, шестая закрыта, «Открыть в „Складно+“»');
   await tap(page, 'tens');
   await page.getByTestId('consent').waitFor();
   await snap(page, 'consent');
   await tap(page, 'consent-no');
   await tap(page, 'tens');
-  await page.getByTestId('notebook-opened').filter({ hasText: 'Открыто 10' }).waitFor();
-  check((await page.getByTestId('cell-9').getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('cell-10').getAttribute('aria-disabled')) === 'true', 'ролик досмотрен: открыты задачи 1–10, одиннадцатая закрыта');
+  await page.getByTestId('notebook-opened').filter({ hasText: 'Открыто 15' }).waitFor();
+  check((await page.getByTestId('cell-14').getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('cell-15').getAttribute('aria-disabled')) === 'true', 'ролик досмотрен: открыты задачи 1–15, шестнадцатая закрыта');
   check((await ads()).shown.includes('rewarded') && (await ads()).personal === false, 'ролик по желанию показан; реклама — обычная, по ответу на экране согласия');
   await snap(page, 'notebook-tens');
   // межстраничный: решено двенадцать задач тетрадей, второй день, три задачи с прошлого ролика
@@ -227,7 +241,7 @@ try {
     localStorage.setItem(k, JSON.stringify(m));
   });
   await page.goto(`${ROOT_URL()}?date=${DAY3}`);
-  await tap(page, 'notebook-labor');
+  await tap(page, 'notebook-mind');
   // задача из открытых, которой нет в первой тетради (образец proverb-0001 стоит в двух тетрадях — он уже решён)
   const li = labor.tasks.findIndex((id, i) => i < 10 && !first.tasks.includes(id));
   await tap(page, `cell-${li}`);
@@ -243,12 +257,13 @@ try {
   // «Буквица+»: покупка в тестовом магазине — рекламы нет, все тетради открыты
   await tap(page, 'plus-home');
   await page.getByTestId('plus-price').filter({ hasText: '249' }).waitFor();
+  check((await page.getByTestId('plus-books').textContent())?.includes('тетрадях за «Складно+»: 4') === true, '«Складно+»: сказано, сколько тетрадей и задач открывает покупка');
   await snap(page, 'plus');
   await tap(page, 'plus-buy');
   await page.getByTestId('plus-thanks').waitFor();
   await tap(page, 'back');
-  await tap(page, 'notebook-labor');
-  check((await page.getByTestId('cell-39').getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('tens').count()) === 0, '«Буквица+»: вся тетрадь открыта, ролика нет');
+  await tap(page, 'notebook-mind');
+  check((await page.getByTestId(`cell-${labor.tasks.length - 1}`).getAttribute('aria-disabled')) !== 'true' && (await page.getByTestId('tens').count()) === 0, '«Буквица+»: вся тетрадь открыта, ролика нет');
   await tap(page, 'back');
 
   await tap(page, 'settings');

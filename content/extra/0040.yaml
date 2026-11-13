@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - word
+  - work
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Язык — речь
+  section: Много — мало
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Язык_—_Речь
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Много_—_Мало
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.yazyk-rech.105.1
-about: Из раздела «Язык — речь». У Даля рядом — «Язык телу якорь».
-text: Не тебе бы говорить, да не мне бы слушать.
-word: 9
+proverb: dal.mnogo-malo.174.2
+about: Из раздела «Много — мало». У Даля рядом — «Из многих малых выходит одно большое».
+text: Выше лба уши не растут.
+word: 5
 letter: к
-position: 7
+position: 6

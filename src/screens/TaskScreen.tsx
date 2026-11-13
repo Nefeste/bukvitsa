@@ -27,7 +27,7 @@ import {
 import { content, task as taskById } from '../content';
 import { T, howSolved, shareText } from '../i18n';
 import { interstitialDue, notebookTaskSolved } from '../money';
-import { nextOpen, resultOf } from '../state/progress';
+import { counts, isClean, nextOpen, rankOf, resultOf, solvedIds } from '../state/progress';
 import { shareOrCopy } from '../state/share';
 import type { Flow, Game } from '../state/game';
 import { Button, Card, Header, Txt } from '../ui/kit';
@@ -41,6 +41,8 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
   const [play, setPlay] = useState<Play>(() => startPlay(task, resultOf(game.results, id)));
   const { record, results, setScreen } = game;
   useEffect(preloadSounds, []);
+  // задача открыта нерешённой — её решение сейчас новое (звание и «тетрадь решена» показываются один раз)
+  const [fresh] = useState(() => !(game.results[id]?.done && !game.results[id]?.peeked));
   // итог пишется, когда задача решена или подсмотрена; решённая заново подсмотренная — тоже
   useEffect(() => {
     const prev = results[id];
@@ -70,11 +72,24 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
     setScreen(to);
   };
 
+  // после решения: сколько в сборнике, новое звание (только что достигнутое), решённая тетрадь
+  const lines: string[] = [];
+  if (play.result.done && !play.result.peeked) {
+    const now = { ...results, [id]: play.result };
+    const n = solvedIds(now, content.tasks.map(x => x.id)).length;
+    lines.push(T.task.collected(n));
+    const before = rankOf(n - 1).rank;
+    const { rank } = rankOf(n);
+    if (fresh && rank > before) lines.push(T.task.newRank(T.collection.ranks[rank]));
+    const b = flow.from === 'notebook' ? content.notebooks.find(x => x.key === flow.key) : undefined;
+    if (b && fresh && counts(now, b.tasks).done === b.tasks.length) lines.push(T.task.bookDone(b.title));
+  }
+
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.top}>
         <Header title={T.kind[task.kind].name} onBack={back} back={T.task.back} />
-        {play.result.done ? <Source task={task} play={play} flow={flow} onShare={() => game.shared(id)} onReport={() => setScreen({ name: 'report', task: `${task.id} (${task.version})`, screen: `task ${flow.from}`, back: { name: 'task', flow, id } })} /> : <Question task={task} play={play} setPlay={setPlay} />}
+        {play.result.done ? <Source task={task} play={play} flow={flow} lines={lines} onShare={() => game.shared(id)} onReport={() => setScreen({ name: 'report', task: `${task.id} (${task.version})`, screen: `task ${flow.from}`, back: { name: 'task', flow, id } })} /> : <Question task={task} play={play} setPlay={setPlay} />}
       </ScrollView>
       <View style={styles.bottom}>
         {play.result.done ? (
@@ -327,7 +342,7 @@ function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: 
 }
 
 /** «Откуда это»: «Верно» или «Подсмотрена», полный текст, источник, строка о значении. */
-function Source({ task, play, flow, onShare, onReport }: { task: Task; play: Play; flow: Flow; onShare: () => void; onReport: () => void }) {
+function Source({ task, play, flow, lines, onShare, onReport }: { task: Task; play: Play; flow: Flow; lines: string[]; onShare: () => void; onReport: () => void }) {
   const styles = useStyles();
   const look = useLook();
   const r = play.result;
@@ -335,8 +350,15 @@ function Source({ task, play, flow, onShare, onReport }: { task: Task; play: Pla
   return (
     <View style={{ gap: 12 }}>
       <Txt style={{ fontWeight: '600', color: r.peeked ? look.c.inkSoft : look.c.spruce }} testID="verdict">
-        {r.peeked ? T.task.peeked : T.task.right}
+        {r.peeked ? T.task.peeked : isClean(r) ? T.task.rightClean : T.task.right}
       </Txt>
+      {lines.length ? (
+        <View testID="gains" style={{ gap: 2 }}>
+          {lines.map(l => (
+            <Txt key={l} dim>{l}</Txt>
+          ))}
+        </View>
+      ) : null}
       <Card testID="source">
         <Txt dim>{T.task.from}</Txt>
         <Txt style={styles.proverbText}>{task.kind === 'riddle' ? `${task.text} — ${task.answer}` : task.text}</Txt>

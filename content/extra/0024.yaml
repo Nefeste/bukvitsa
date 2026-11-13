@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - home
+  - mind
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Пища
+  section: Похвала — похвальба
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Пища
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Похвала_—_Похвальба
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.pischa.112.2
-about: Из раздела «Пища». У Даля рядом — «Хлеб всему голова».
-text: Голоден, как волк, голоден, будто век не едал.
-word: 3
+proverb: dal.pohvala-pohvalba.30.1
+about: Из раздела «Похвала — похвальба». У Даля рядом — «Ржаная каша сама себя хвалит».
+text: Сам не хвались, как люди похвалят.
+word: 6
 letter: е
-position: 4
+position: 7

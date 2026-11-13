@@ -2,18 +2,17 @@ id: proverb-0029
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - labor
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Ремесло — снаряд
+  section: Толк — бестолочь
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Ремесло_—_Снаряд
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Толк_—_Бестолочь
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.remeslo-snaryad.37.1
-about: Из раздела «Ремесло — снаряд». У Даля рядом — «В гору-то семеро тащат, а с горы и один столкнет».
-text: Булат железо и кисель режет.
-answer: кисель
-gap: 4
+proverb: dal.tolk-bestoloch.587.1
+about: Из раздела «Толк — бестолочь». У Даля рядом — «Перекрестись да выспись!».
+text: На вкус, на цвет мастера нет.
+answer: мастера
+gap: 5

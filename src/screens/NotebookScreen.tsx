@@ -4,11 +4,11 @@
 // навсегда (canOpen в движке). Закрытая — «Открыть в „Буквице+“» и «Десять задач за ролик».
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { canOpen, rateDue } from '../engine';
+import { AD_RULES, canOpen, openCount, rateDue } from '../engine';
 import { content, task as taskById } from '../content';
 import { T } from '../i18n';
 import { prepareRewarded, rewardedReady, TENS, useMoney, watchForTens } from '../money';
-import { counts } from '../state/progress';
+import { cleanCount, counts, isClean } from '../state/progress';
 import { askRating } from '../state/rate';
 import type { Game } from '../state/game';
 import { Cover } from '../ui/Cover';
@@ -22,7 +22,7 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
   const [ready, setReady] = useState(() => rewardedReady());
   const b = content.notebooks.find(x => x.key === book);
   const opened = money.opened[book] ?? 0;
-  const locked = !!b && !b.free && !money.plus && opened < b.tasks.length;
+  const locked = !!b && openCount(b.free, money.plus, opened, b.tasks.length) < b.tasks.length;
   const { setScreen, settings, results, save, markRated } = game;
   useEffect(() => {
     if (locked) prepareRewarded(() => setReady(true));
@@ -47,6 +47,7 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
   };
   if (!b) return null;
   const c = counts(game.results, b.tasks);
+  const clean = cleanCount(game.results, b.tasks);
   const flow = { from: 'notebook' as const, key: book };
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -55,15 +56,15 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
         <Cover initial={b.initial} motif={b.motif} size={72} />
         <View style={{ flex: 1, gap: 6 }}>
           <Txt dim>{b.blurb}</Txt>
-          <Txt dim testID="notebook-progress">{c.done === b.tasks.length ? T.notebook.done : T.home.progress(c.done, b.tasks.length, c.peeked)}</Txt>
+          <Txt dim testID="notebook-progress">{`${c.done === b.tasks.length ? T.notebook.done : T.home.progress(c.done, b.tasks.length, c.peeked)}${clean ? ` · ${T.home.clean(clean)}` : ''}`}</Txt>
         </View>
       </View>
-      {locked ? <Txt dim testID="notebook-opened">{T.money.opened(opened, b.tasks.length)}</Txt> : null}
+      {locked ? <Txt dim testID="notebook-opened">{`${T.money.opened(openCount(false, false, opened, b.tasks.length), b.tasks.length)}${opened ? '' : ` · ${T.money.taste(AD_RULES.taste)}`}`}</Txt> : null}
       <View style={styles.grid}>
         {b.tasks.map((id, i) => {
           const r = game.results[id];
           const open = canOpen(i, b.free, money.plus, opened) === 'open';
-          const mark = !open ? '' : r?.done ? (r.peeked ? '○' : '●') : '·';
+          const mark = !open ? '' : r?.done ? (r.peeked ? '○' : isClean(r) ? '★' : '●') : '·';
           return (
             <Pressable
               key={id}
@@ -71,7 +72,7 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
               accessibilityRole="button"
               accessibilityState={{ disabled: !open }}
               disabled={!open}
-              accessibilityLabel={`${T.notebook.item(i + 1)}: ${open ? `${T.kind[taskById(id).kind].lower}, ${r?.done ? (r.peeked ? T.notebook.peeked : T.notebook.solved) : T.notebook.open}` : T.money.locked}`}
+              accessibilityLabel={`${T.notebook.item(i + 1)}: ${open ? `${T.kind[taskById(id).kind].lower}, ${r?.done ? (r.peeked ? T.notebook.peeked : isClean(r) ? T.notebook.clean : T.notebook.solved) : T.notebook.open}` : T.money.locked}`}
               onPress={() => setScreen({ name: 'task', flow, id })}
               style={({ pressed }) => [styles.cell, !open && styles.cellLocked, pressed && { opacity: 0.8 }]}>
               <Text style={[styles.num, !open && { opacity: 0.5 }]}>{i + 1}</Text>
@@ -80,6 +81,7 @@ export function NotebookScreen({ game, book }: { game: Game; book: string }) {
           );
         })}
       </View>
+      <Txt dim>{T.notebook.legend}</Txt>
       {locked ? (
         <View style={{ gap: 8 }}>
           <Button testID="open-plus" label={T.money.openPlus} onPress={() => setScreen({ name: 'plus' })} />

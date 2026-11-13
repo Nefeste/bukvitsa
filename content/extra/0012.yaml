@@ -2,19 +2,18 @@ id: extra-letter-0012
 version: 1
 kind: extra-letter
 review: draft
-daily: no
-notebooks:
-  - first
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Работа — праздность
+  section: Путь — дорога
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Работа_—_Праздность
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Путь_—_Дорога
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.rabota-prazdnost.97.1
-about: Из раздела «Работа — праздность». У Даля рядом — «Плохо жить без забот, худо без доброго слова».
-text: Семеро одну соломинку подымают.
-word: 2
+proverb: dal.put-doroga.24.1
+about: Из раздела «Путь — дорога». У Даля рядом — «Попостись, помолись, да и в путь соберись!».
+text: Язык до Киева доведет.
+word: 1
 letter: л
 position: 3
