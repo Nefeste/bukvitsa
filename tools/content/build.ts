@@ -46,7 +46,8 @@ function sourceLine(r: Rec): string {
 }
 
 /** Запись → задача движка; ошибки — в `errors`. */
-export function toTask(r: Rec, errors: string[]): Task | null {
+/** `names` — слова, которые источник пишет с заглавной и в середине фразы (имена собственные). */
+export function toTask(r: Rec, errors: string[], names: ReadonlySet<string> = new Set()): Task | null {
   const at = r.file ?? r.id;
   const base = { id: r.id, version: r.version, kind: r.kind as TaskKind, text: r.text ?? '', about: r.about ?? '', source: sourceLine(r) };
   const answerOk = (a: string | undefined) => {
@@ -131,14 +132,32 @@ export function toTask(r: Rec, errors: string[]): Task | null {
     errors.push(`${at}: части (3–4) не складываются в текст`);
     return null;
   }
-  const shuffled = shuffleNotSame(parts, r.id, r.version);
+  // игроку части идут без подсказок о порядке: без знаков по краям и без заглавной буквы начала (имя собственное
+  // остаётся с заглавной); полный текст со знаками — в «Откуда это»
+  const bare = parts.map((p, i) => {
+    const t = p.replace(/^[\s.,;:!?…—–-]+|[\s.,;:!?…—–-]+$/g, '');
+    const first = t.split(/[^А-Яа-яЁё]/)[0];
+    return i === 0 && !names.has(first) ? t[0].toLowerCase() + t.slice(1) : t;
+  });
+  const shuffled = shuffleNotSame(bare, r.id, r.version);
   const used = new Set<number>();
-  const order = parts.map(p => {
+  const order = bare.map(p => {
     const i = shuffled.findIndex((s, k) => s === p && !used.has(k));
     used.add(i);
     return i;
   });
-  return { ...base, prompt: '', answer: order.join(','), parts: shuffled };
+  const also: string[] = [];
+  for (const pair of r.swap ?? []) {
+    const [a, b] = pair;
+    if (pair.length !== 2 || !Number.isInteger(a) || !Number.isInteger(b) || a === b || a < 0 || b < 0 || a >= parts.length || b >= parts.length) {
+      errors.push(`${at}: swap — пары разных номеров частей с нуля`);
+      return null;
+    }
+    const o = [...order];
+    [o[a], o[b]] = [o[b], o[a]];
+    also.push(o.join(','));
+  }
+  return { ...base, prompt: '', answer: order.join(','), parts: shuffled, ...(also.length ? { also } : {}) };
 }
 
 export function build(root = ROOT, opts: { release?: boolean; today?: string } = {}) {
@@ -162,6 +181,10 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
       .filter(Boolean),
   );
   const ready = (r: Rec | undefined) => !!r && (r.review === 'checked' || (!!r.proverb && known.has(r.proverb)));
+
+  // имена собственные по источнику: слово с заглавной не в начале фразы
+  const names = new Set<string>();
+  for (const q of pool.byId.values()) for (const m of q.text.matchAll(/[а-яё] ([А-ЯЁ][а-яё]+)/g)) names.add(m[1]);
 
   const tasks: Task[] = [];
   const byId = new Map<string, Rec>();
@@ -191,7 +214,7 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
       else if (p.text !== r.text) errors.push(`${at}: текст разошёлся с источником (${r.proverb})`);
     }
     if (opts.release && !ready(r)) continue;
-    const t = toTask(r, errors);
+    const t = toTask(r, errors, names);
     if (t) tasks.push(t);
   }
 

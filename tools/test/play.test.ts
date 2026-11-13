@@ -1,7 +1,7 @@
 // Ход решения (src/engine/play.ts) по 08-game-design.md: ряд букв, выбор из четырёх, найти в строке,
 // расставить части; три подсказки по порядку; подсмотренная задача.
 import { describe, expect, test } from 'bun:test';
-import { choose, hint, nextHint, openWord, pickPart, place, startPlay, tapLetter, unplace, unpickPart, usedTiles, type Task } from '../../src/engine';
+import { EMPTY_RESULT, choose, hint, nextHint, openWord, pickPart, place, startPlay, tapLetter, unplace, unpickPart, usedTiles, type Task } from '../../src/engine';
 
 const base = { version: 1, text: '', about: 'о', source: 'и' };
 const proverb: Task = { ...base, id: 'proverb-9001', kind: 'proverb', prompt: 'Скучен день до вечера, коли делать ____.', answer: 'нечего', row: ['е', 'о', 'н', 'ч', 'т', 'г', 'е', 'а', 'о'] };
@@ -128,5 +128,15 @@ describe('расставить части', () => {
     p = pickPart(parts, p, 0);
     p = pickPart(parts, p, 1);
     expect(p.result).toEqual({ done: true, tries: 1, hints: 1, peeked: false });
+  });
+});
+
+describe('по частям: равноправные части', () => {
+  const t: Task = { id: 'parts-9002', version: 1, kind: 'parts', prompt: '', answer: '0,1,2', also: ['0,2,1'], parts: ['бабка надвое сказала', 'либо сын', 'либо дочь'], text: 'Бабка надвое сказала: либо сын, либо дочь.', about: 'о', source: 'Даль' };
+  const put = (order: number[]) => order.reduce((p, i) => pickPart(t, p, i), startPlay(t, EMPTY_RESULT));
+  test('оба порядка равноправных частей верны, третий — нет', () => {
+    expect(put([0, 1, 2]).result.done).toBe(true);
+    expect(put([0, 2, 1]).result.done).toBe(true);
+    expect(put([1, 0, 2]).result.done).toBe(false);
   });
 });

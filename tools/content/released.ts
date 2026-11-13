@@ -14,7 +14,7 @@ export interface Lock {
 
 /** Отпечаток задачи в выпуске: всё, что видит игрок, в постоянном порядке полей. */
 export function taskHash(t: Task): string {
-  const seen = [t.kind, t.prompt, t.answer, t.row ?? null, t.options ?? null, t.words ?? null, t.parts ?? null, t.text, t.about, t.source];
+  const seen = [t.kind, t.prompt, t.answer, t.row ?? null, t.options ?? null, t.words ?? null, t.parts ?? null, ...(t.also ? [t.also] : []), t.text, t.about, t.source];
   return createHash('sha256').update(JSON.stringify(seen)).digest('hex');
 }
 
