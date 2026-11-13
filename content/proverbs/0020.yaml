@@ -2,18 +2,17 @@ id: proverb-0020
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - labor
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Работа — праздность
+  section: Правда — кривда
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Работа_—_Праздность
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Правда_—_Кривда
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.rabota-prazdnost.72.1
-about: Из раздела «Работа — праздность». У Даля рядом — «Плохо жить без забот, худо без доброго слова».
-text: Пашешь — плачешь, жнешь — скачешь.
-answer: плачешь
-gap: 2
+proverb: dal.pravda-krivda.389.1
+about: Из раздела «Правда — кривда». У Даля рядом — «И Мамай правды не съел».
+text: Правда глаза колет.
+answer: колет
+gap: 3

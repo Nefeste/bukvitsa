@@ -2,8 +2,9 @@ id: cipher-0031
 version: 1
 kind: cipher
 review: draft
-daily: yes
-notebooks: []
+daily: no
+notebooks:
+  - luck
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
@@ -11,6 +12,6 @@ source:
   basis: общественное достояние
   url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Счастье_—_Удача
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.schaste-udacha.455.2
+proverb: dal.schaste-udacha.274.1
 about: Из раздела «Счастье — удача». У Даля рядом — «Такой стих нашел».
-text: Через людей в люди выходят.
+text: Был бы покос, да пришел мороз.

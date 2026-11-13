@@ -12,8 +12,8 @@ source:
   basis: общественное достояние
   url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Счастье_—_Удача
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.schaste-udacha.44.1
+proverb: dal.schaste-udacha.73.1
 about: Из раздела «Счастье — удача». У Даля рядом — «Такой стих нашел».
-text: Ни под гору, ни в гору.
-answer: гору
-gap: 6
+text: Конь о четырех ногах, да спотыкается.
+answer: ногах
+gap: 4

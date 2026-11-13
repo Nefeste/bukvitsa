@@ -43,3 +43,41 @@ export function nextOpen(rs: Results, ids: readonly string[], after?: string): s
   }
   return null;
 }
+
+/** Решена начисто: с первой попытки и без подсказок. */
+export const isClean = (r: Result | undefined): boolean => !!r && r.done && !r.peeked && r.tries <= 1 && r.hints === 0;
+
+/** Сколько задач из списка решено начисто. */
+export const cleanCount = (rs: Results, ids: readonly string[]): number => ids.filter(id => isClean(rs[id])).length;
+
+/** Звания сборника: сколько задач решено — числа из 08-game-design.md, «Сборник»; меняются только вместе с ним. */
+export const RANKS = [10, 30, 75, 150, 250] as const;
+
+/** Звание по числу решённых: `rank` — номер достигнутого (−1 — ещё нет), `next` — порог следующего или `null`. */
+export function rankOf(solved: number): { rank: number; next: number | null } {
+  let rank = -1;
+  while (rank + 1 < RANKS.length && solved >= RANKS[rank + 1]) rank++;
+  return { rank, next: RANKS[rank + 1] ?? null };
+}
+
+/** Всего решено (подсмотренные не в счёт) среди задач набора. */
+export const solvedIds = (rs: Results, ids: readonly string[]): string[] => ids.filter(id => rs[id]?.done && !rs[id]?.peeked);
+
+/**
+ * «Продолжить»: тетрадь и её следующая открытая нерешённая задача. Сперва тетрадь, где решали последней
+ * (`lastId` — последняя решённая задача), потом остальные по порядку; нигде нет — `null`.
+ */
+export function resume(
+  rs: Results,
+  books: readonly { key: string; tasks: readonly string[] }[],
+  openIn: (key: string) => number,
+  lastId?: string,
+): { key: string; id: string; index: number } | null {
+  const last = lastId ? books.find(b => b.tasks.includes(lastId)) : undefined;
+  for (const b of last ? [last, ...books.filter(x => x !== last)] : books) {
+    const n = openIn(b.key);
+    const index = b.tasks.findIndex((id, i) => i < n && (!rs[id]?.done || rs[id]?.peeked));
+    if (index >= 0) return { key: b.key, id: b.tasks[index], index };
+  }
+  return null;
+}

@@ -2,15 +2,16 @@ id: cipher-0028
 version: 1
 kind: cipher
 review: draft
-daily: yes
-notebooks: []
+daily: no
+notebooks:
+  - luck
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Начало — конец
+  section: Былое — будущее
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Начало_—_Конец
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Былое_—_Будущее
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.nachalo-konec.160.1
-about: Из раздела «Начало — конец». У Даля рядом — «Все дело в почине».
-text: Дело без конца, что кобыла без хвоста.
+proverb: dal.byloe-buduschee.139.1
+about: Из раздела «Былое — будущее». У Даля рядом — «Год на год не работник».
+text: Добро помни, а зло забывай.

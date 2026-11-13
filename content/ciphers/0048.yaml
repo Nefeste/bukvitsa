@@ -2,15 +2,16 @@ id: cipher-0048
 version: 1
 kind: cipher
 review: draft
-daily: yes
-notebooks: []
+daily: no
+notebooks:
+  - people
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Память — помни
+  section: Хорошо — худо
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Память_—_Помни
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Хорошо_—_Худо
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.pamyat-pomni.31.1
-about: Из раздела «Память — помни». У Даля рядом — «Будешь во времени — и нас вспомни!».
-text: О волке помолвка, а волк и тут.
+proverb: dal.horosho-hudo.86.2
+about: Из раздела «Хорошо — худо». У Даля рядом — «Так хорошо, что любо».
+text: Доброта без разума пуста.

@@ -2,15 +2,16 @@ id: cipher-0043
 version: 1
 kind: cipher
 review: draft
-daily: yes
-notebooks: []
+daily: no
+notebooks:
+  - people
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Правда — кривда
+  section: Семья — родня
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Правда_—_Кривда
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Семья_—_Родня
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.pravda-krivda.260.1
-about: Из раздела «Правда — кривда». У Даля рядом — «И Мамай правды не съел».
-text: Не принять горького, не видать и сладкого.
+proverb: dal.semya-rodnya.21.1
+about: Из раздела «Семья — родня». У Даля рядом — «В своей семье всяк сам большой».
+text: В семье не без урода, а на урода все не в угоду.

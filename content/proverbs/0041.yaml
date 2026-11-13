@@ -2,18 +2,17 @@ id: proverb-0041
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - home
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Пища
+  section: Ученье — наука
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Пища
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Ученье_—_Наука
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.pischa.517.1
-about: Из раздела «Пища». У Даля рядом — «Хлеб всему голова».
-text: Рюмочка-каточек, катись в мой роточек.
-answer: катись
-gap: 2
+proverb: dal.uchene-nauka.38.1
+about: "Из раздела «Ученье — наука». У Даля в скобках: школьн. У Даля рядом — «Кто хочет много знать, тому надо мало спать»."
+text: Повторенье — мать ученья.
+answer: ученья
+gap: 3

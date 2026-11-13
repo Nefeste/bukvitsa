@@ -2,18 +2,17 @@ id: proverb-0027
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - labor
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Работа — праздность
+  section: Займы
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Работа_—_Праздность
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Займы
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.rabota-prazdnost.182.1
-about: "Из раздела «Работа — праздность». У Даля в скобках: волокно будет доле. У Даля рядом — «Плохо жить без забот, худо без доброго слова»."
-text: Мни лен доле, волокна будет боле.
-answer: боле
-gap: 6
+proverb: dal.zaymy.1.1
+about: Из раздела «Займы». У Даля рядом — «Красны займы отдачею».
+text: Долг платежом красен.
+answer: красен
+gap: 3

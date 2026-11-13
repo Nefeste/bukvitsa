@@ -2,19 +2,18 @@ id: extra-letter-0052
 version: 1
 kind: extra-letter
 review: draft
-daily: no
-notebooks:
-  - winter
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Былое — будущее
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Былое_—_Будущее
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.397.1
-about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
-text: С Петра Афонского солнце на зиму, а лето на жары.
-word: 4
+proverb: dal.byloe-buduschee.283.1
+about: Из раздела «Былое — будущее». У Даля рядом — «Год на год не работник».
+text: Вчера не догонишь, а от завтра не уйдешь.
+word: 1
 letter: о
-position: 6
+position: 4

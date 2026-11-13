@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - home
+  - luck
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Опрятность
+  section: Счастье — удача
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Опрятность
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Счастье_—_Удача
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.opryatnost.11.1
-about: Из раздела «Опрятность». У Даля рядом — «Как жук, в навозе копается».
-text: Поганое к чистому не пристанет.
-word: 3
+proverb: dal.schaste-udacha.524.1
+about: Из раздела «Счастье — удача». У Даля рядом — «Такой стих нашел».
+text: "Счастье не кляп: в руки не возьмешь."
+word: 7
 letter: н
-position: 3
+position: 7

@@ -2,11 +2,11 @@
 // «Настройки», «Об игре»; «Буквица+» — одно из трёх мест, где игра говорит о покупке.
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { daily } from '../engine';
+import { daily, openCount } from '../engine';
 import { content, task as taskById } from '../content';
 import { T, howSolved, shareText } from '../i18n';
 import { useMoney } from '../money';
-import { counts } from '../state/progress';
+import { cleanCount, counts, rankOf, resume, solvedIds } from '../state/progress';
 import { shareOrCopy } from '../state/share';
 import type { Game } from '../state/game';
 import { Button, Card, Txt } from '../ui/kit';
@@ -23,6 +23,16 @@ export function HomeScreen({ game }: { game: Game }) {
   const r = id ? results[id] : undefined;
   const [copied, setCopied] = useState(false);
   const money = useMoney();
+  // «Продолжить»: следующая открытая задача тетради, где решали последней
+  const lastId = [...game.save.events].reverse().find(e => e.t === 'solved')?.id;
+  const go = resume(results, content.notebooks, key => {
+    const b = content.notebooks.find(x => x.key === key)!;
+    return openCount(b.free, money.plus, money.opened[key] ?? 0, b.tasks.length);
+  }, lastId);
+  const goBook = go ? content.notebooks.find(b => b.key === go.key) : undefined;
+  const all = content.tasks.map(x => x.id);
+  const solved = solvedIds(results, all).length;
+  const { rank } = rankOf(solved);
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.title}>
@@ -58,18 +68,31 @@ export function HomeScreen({ game }: { game: Game }) {
         )}
       </Card>
 
+      {go && goBook ? (
+        <Card testID="resume">
+          <Txt dim testID="resume-at">{T.home.resumeAt(goBook.title, go.index + 1, goBook.tasks.length, taskById(go.id).kind)}</Txt>
+          <Button testID="resume-go" kind={r?.done || !t ? 'primary' : 'ghost'} label={T.home.resume} onPress={() => setScreen({ name: 'task', flow: { from: 'notebook', key: go.key }, id: go.id })} />
+        </Card>
+      ) : null}
+
+      <Card testID="collection" onPress={() => setScreen({ name: 'collection' })}>
+        <Txt style={{ fontWeight: '600' }}>{rank >= 0 ? `${T.home.collection} · ${T.collection.ranks[rank]}` : T.home.collection}</Txt>
+        <Txt dim testID="collection-count">{T.collection.solved(solved, all.length)}</Txt>
+      </Card>
+
       <Txt title style={{ fontSize: look.z(S.lead), lineHeight: look.z(28) }}>{T.home.notebooks}</Txt>
       {content.notebooks.map(b => {
         // тетрадь с задачами открывается всегда: закрытые задачи видны внутри, с «Буквицей+» и роликом
         const open = b.tasks.length > 0;
         const c = counts(results, b.tasks);
+        const clean = cleanCount(results, b.tasks);
         return (
           <Pressable key={b.key} testID={`notebook-${b.key}`} disabled={!open} onPress={() => setScreen({ name: 'notebook', key: b.key })} style={({ pressed }) => [styles.book, !open && styles.closed, pressed && { opacity: 0.8 }]}>
             <Cover initial={b.initial} motif={b.motif} size={look.z(48)} dim={!open} testID={`cover-${b.key}`} />
             <View style={{ flex: 1, gap: 4 }}>
               <Txt style={{ fontWeight: '600' }}>{b.title}</Txt>
               <Txt dim>{b.blurb}</Txt>
-              <Txt dim>{open ? T.home.progress(c.done, b.tasks.length, c.peeked) : T.home.later}</Txt>
+              <Txt dim>{open ? `${T.home.progress(c.done, b.tasks.length, c.peeked)}${clean ? ` · ${T.home.clean(clean)}` : ''}` : T.home.later}</Txt>
             </View>
           </Pressable>
         );

@@ -11,8 +11,8 @@ source:
   basis: общественное достояние
   url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Счастье_—_Удача
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.schaste-udacha.9.1
+proverb: dal.schaste-udacha.69.1
 about: Из раздела «Счастье — удача». У Даля рядом — «Такой стих нашел».
-text: Без счастья и в лес по грибы не ходи!
-answer: ходи
-gap: 9
+text: Беда не по лесу ходит, а по людям.
+answer: людям
+gap: 8

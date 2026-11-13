@@ -2,19 +2,18 @@ id: extra-letter-0053
 version: 1
 kind: extra-letter
 review: draft
-daily: no
-notebooks:
-  - winter
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Месяцеслов
+  section: Человек
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Месяцеслов
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Человек
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.mesyaceslov.74.2
-about: Из раздела «Месяцеслов». У Даля рядом — «Январь».
-text: Власий, сшиби рог с зимы.
-word: 2
+proverb: dal.chelovek.597.1
+about: "Из раздела «Человек». У Даля в скобках: язык. У Даля рядом — «Рыбам вода, птицам воздух, а человеку вся земля»."
+text: В море доска — не гниет, не сохнет.
+word: 7
 letter: е
-position: 2
+position: 4

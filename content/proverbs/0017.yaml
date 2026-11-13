@@ -2,18 +2,17 @@ id: proverb-0017
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - labor
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Работа — праздность
+  section: Язык — речь
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Работа_—_Праздность
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Язык_—_Речь
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.rabota-prazdnost.281.1
-about: Из раздела «Работа — праздность». У Даля рядом — «Плохо жить без забот, худо без доброго слова».
-text: Сколько кобылка жеребят ни рожала, а хомута не миновала.
-answer: кобылка
-gap: 2
+proverb: dal.yazyk-rech.38.1
+about: Из раздела «Язык — речь». У Даля рядом — «Язык телу якорь».
+text: Меньше говори, да больше делай!
+answer: делай
+gap: 5

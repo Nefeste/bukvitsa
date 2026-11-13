@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - word
+  - luck
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Язык — речь
+  section: Терпение — надежда
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Язык_—_Речь
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Терпение_—_Надежда
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.yazyk-rech.54.1
-about: "Из раздела «Язык — речь». У Даля в скобках: пожинает. У Даля рядом — «Язык телу якорь»."
-text: Кто говорит, тот сеет; кто слушает — собирает.
-word: 4
+proverb: dal.terpenie-nadezhda.30.1
+about: Из раздела «Терпение — надежда». У Даля рядом — «Власть создателя».
+text: Пора придет, и вода пойдет.
+word: 2
 letter: а
 position: 4

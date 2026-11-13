@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - word
+  - work
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Язык — речь
+  section: Вина — заслуга
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Язык_—_Речь
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Вина_—_Заслуга
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.yazyk-rech.61.1
-about: Из раздела «Язык — речь». У Даля рядом — «Язык телу якорь».
-text: Ешь пирог с грибами, а язык держи за зубами)
-word: 4
+proverb: dal.vina-zasluga.119.1
+about: "Из раздела «Вина — заслуга». У Даля в скобках: или: ворог. У Даля рядом — «Как кого звать, так и поминать»."
+text: Всяк сам себе и друг и недруг.
+word: 1
 letter: д
-position: 7
+position: 4

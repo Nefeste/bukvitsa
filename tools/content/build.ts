@@ -4,7 +4,7 @@
 //
 //   bun tools/content/build.ts [--check] [--release]
 //   --check   — только проверить, ничего не писать
-//   --release — в набор только `review: checked`; календарь — сверенные дни подряд от начала (с первого черновика
+//   --release — в набор только `review: checked` и отбор редактора (content/known.txt, ADR 0010); календарь — сверенные дни подряд от начала (с первого черновика
 //               дальше не идёт), и их запас от сегодня ≥ RELEASE_DAYS (60) дней, ADR 0008
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -153,6 +153,15 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
   const keys = new Set(books.map(b => b.key));
   const raw = parse(readFileSync(join(root, 'content', 'calendar.yaml'), 'utf8')) as { from: string | null; days: Record<string, string> | null };
   const recs = readRecords(root);
+  // выпуск (ADR 0010): готова запись, сверенная со сканом, или запись из отбора редактора (content/known.txt) —
+  // её текст совпадает со скачанным источником буква в букву (проверка ниже); пометку `review` это не меняет
+  const known = new Set(
+    readFileSync(join(root, 'content', 'known.txt'), 'utf8')
+      .split('\n')
+      .map(l => l.split('#')[0].trim())
+      .filter(Boolean),
+  );
+  const ready = (r: Rec | undefined) => !!r && (r.review === 'checked' || (!!r.proverb && known.has(r.proverb)));
 
   const tasks: Task[] = [];
   const byId = new Map<string, Rec>();
@@ -181,21 +190,35 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
       if (!p) errors.push(`${at}: нет пословицы ${r.proverb} в скачанном источнике`);
       else if (p.text !== r.text) errors.push(`${at}: текст разошёлся с источником (${r.proverb})`);
     }
-    if (opts.release && r.review !== 'checked') continue;
+    if (opts.release && !ready(r)) continue;
     const t = toTask(r, errors);
     if (t) tasks.push(t);
   }
 
   const inPack = new Set(tasks.map(t => t.id));
-  // выпуск (ADR 0008): тетрадь идёт только целиком сверенной и не меньше NOTEBOOK_MIN задач, иначе — «В следующих
+  // выпуск (ADR 0008, 0010): тетрадь идёт только целиком готовой и не меньше NOTEBOOK_MIN задач, иначе — «В следующих
   // версиях»; бесплатная — обязательно
-  const unchecked = (key: string) => recs.filter(r => r.notebooks?.includes(key) && r.review !== 'checked').length;
+  const unchecked = (key: string) => recs.filter(r => r.notebooks?.includes(key) && !ready(r)).length;
   const size = (key: string) => recs.filter(r => r.notebooks?.includes(key)).length;
+  // порядок в тетради: виды по кругу, внутри вида — по номеру записи (от известных к редким, как их выбрал pick.ts);
+  // пропуск и конец пословицы — первыми, тайнопись — последней в круге
+  const ROUND: string[] = ['proverb', 'ending', 'riddle', 'extra-letter', 'parts', 'old-word', 'cipher'];
+  const inOrder = (rs: Rec[]): string[] => {
+    const nth = new Map<string, number>();
+    return rs
+      .map(r => {
+        const n = nth.get(r.kind) ?? 0;
+        nth.set(r.kind, n + 1);
+        return { id: r.id, n, k: ROUND.indexOf(r.kind) };
+      })
+      .sort((a, b) => a.n - b.n || a.k - b.k)
+      .map(x => x.id);
+  };
   const notebooks: Notebook[] = books.map((b, i) => {
     const initial = String(b.initial ?? b.title[0] ?? '').toUpperCase();
     if (!/^[А-ЯЁ]$/.test(initial)) errors.push(`тетрадь ${b.key}: буквица обложки «${initial}» — не одна русская буква`);
     const left = opts.release ? unchecked(b.key) + (size(b.key) < NOTEBOOK_MIN && !yes(b.free) ? 1 : 0) : 0;
-    if (left && yes(b.free)) errors.push(`тетрадь ${b.key}: бесплатная, а не сверено ${left} — в выпуск она идёт целиком`);
+    if (left && yes(b.free)) errors.push(`тетрадь ${b.key}: бесплатная, а не готово ${left} — в выпуск она идёт целиком`);
     return {
       key: b.key,
       initial,
@@ -203,12 +226,12 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
       title: b.title,
       blurb: b.blurb,
       free: yes(b.free),
-      tasks: left ? [] : recs.filter(r => r.notebooks?.includes(b.key) && inPack.has(r.id)).map(r => r.id),
+      tasks: left ? [] : inOrder(recs.filter(r => r.notebooks?.includes(b.key) && inPack.has(r.id))),
     };
   });
 
   const calendar: Calendar = { from: raw.from ?? '', days: {} };
-  // выпуск (ADR 0008): сверенные дни подряд от начала; с первого черновика календарь в набор не идёт — он растёт
+  // выпуск (ADR 0008, 0010): готовые дни подряд от начала; с первого черновика календарь в набор не идёт — он растёт
   // выпусками, а запас проверяется ниже
   let cut: string | null = null;
   let dropped = 0;
@@ -217,7 +240,7 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
     if (!r) errors.push(`календарь, ${date}: нет записи ${id}`);
     else if (!yes(r.daily)) errors.push(`календарь, ${date}: ${id} без daily: yes`);
     else if (r.notebooks?.length) errors.push(`календарь, ${date}: ${id} стоит в тетради — задача дня не входит в тетради`);
-    if (opts.release && !cut && r?.review !== 'checked') cut = date;
+    if (opts.release && !cut && !ready(r)) cut = date;
     if (cut) dropped++;
     else if (inPack.has(id)) calendar.days[date] = id;
   }
@@ -248,7 +271,7 @@ export function build(root = ROOT, opts: { release?: boolean; today?: string } =
     `записей: ${recs.length} (черновиков ${draft}); в наборе: ${tasks.length} — пословиц ${count('proverb')}, загадок ${count('riddle')}, лишняя буква ${count('extra-letter')}, старых слов ${count('old-word')}, по частям ${count('parts')}, конец пословицы ${count('ending')}, тайнописи ${count('cipher')}`,
     `тетради: ${notebooks.map(b => `${b.key} ${b.tasks.length}`).join(', ')}`,
     ...(opts.release ? [`выпуск: тетради ${notebooks.filter(b => b.tasks.length).map(b => b.key).join(', ') || 'нет'}; остальные — «В следующих версиях»`] : []),
-    ...(opts.release ? [`выпуск: в календаре ${Object.keys(calendar.days).length} сверенных дней подряд${cut ? `, с ${cut} — черновик, дальше ${dropped} дней не вошли` : ''}`] : []),
+    ...(opts.release ? [`выпуск: в календаре ${Object.keys(calendar.days).length} готовых дней подряд${cut ? `, с ${cut} — не готово, дальше ${dropped} дней не вошли` : ''}`] : []),
     `календарь: ${Object.keys(calendar.days).length} дней с ${calendar.from || '—'}; не по виду дня недели: ${offPlan} (из них в среду конец пословицы вместо старого слова: ${endingWed})`,
     `пословиц в источнике: ${pool.byId.size}, разрешено: ${pool.allowed.length}`,
   ];

@@ -4,17 +4,17 @@ kind: extra-letter
 review: draft
 daily: no
 notebooks:
-  - home
+  - mind
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Двор — дом — хозяйство
+  section: Грамота
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Двор_—_Дом_—_Хозяйство
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Грамота
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.dvor-dom-hozyaystvo.52.1
-about: Из раздела «Двор — дом — хозяйство». У Даля рядом — «Держись друга старого, а дома нового!».
-text: Без хозяина дом — сирота.
-word: 2
+proverb: dal.gramota.30.1
+about: Из раздела «Грамота». У Даля рядом — «Грамоте учиться всегда пригодится».
+text: Бумага терпит, перо пишет.
+word: 1
 letter: п
-position: 2
+position: 3

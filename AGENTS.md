@@ -46,6 +46,9 @@ truth for *why* things are the way they are. Start there, in this order:
 - `docs/adr/` — decisions that are expensive to reverse; read the relevant one *before*
   proposing the opposite.
 - `docs/specs/` — specification-driven development: a notable feature gets a spec **before** code.
+- `content/known.txt` and ADR 0010 (13.11.2026) — the editor's selection of proverbs known today: it fills the first
+  notebook, the first 90 calendar days and the themed notebooks, and goes into `--release` without the scan check;
+  `review: checked` is still set only by a human.
 - `docs/journal/ГГГГ-ММ.md` — the monthly journal; add a dated entry for anything decided,
   done or broken.
 
@@ -73,7 +76,7 @@ pinned and changed only in a separate PR.
 npm ci
 npx expo install <package>          # ALWAYS use instead of npm/yarn/pnpm/bun add
 npm run content                     # FIRST: content/ → src/content/generated/pack.ts (not in git) + checks; report dist/report.md
-bun tools/content/build.ts --check  # checks only; --release — only `checked`, calendar ≥ 60 days of checked (ADR 0008)
+bun tools/content/build.ts --check  # checks only; --release — only `checked` or the editor's selection (`content/known.txt`, ADR 0010), calendar ≥ 60 such days (ADR 0008)
 bun tools/content/pick.ts           # draft records from the downloaded Dahl text (09-content.md §9); never renumbers
 bun tools/content/calendar.ts --from ГГГГ-ММ-ДД --years 3 [--draft]   # append the daily calendar (never edit released dates)
 bun tools/content/fetch.ts          # download missing Dahl sections from Wikisource (own User-Agent, 4 s apart)

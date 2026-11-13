@@ -2,18 +2,17 @@ id: proverb-0038
 version: 1
 kind: proverb
 review: draft
-daily: no
-notebooks:
-  - home
+daily: yes
+notebooks: []
 source:
   work: Даль. Пословицы русского народа
   edition: 2-е изд., 1879 (текст Викитеки — по 1-му изд., 1862, без изменений против 2-го)
-  section: Двор — дом — хозяйство
+  section: Смелость — отвага — трусость
   basis: общественное достояние
-  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Двор_—_Дом_—_Хозяйство
+  url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Смелость_—_Отвага_—_Трусость
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.dvor-dom-hozyaystvo.215.1
-about: Из раздела «Двор — дом — хозяйство». У Даля рядом — «Держись друга старого, а дома нового!».
-text: На своей улочке и курочка храбра.
-answer: своей
-gap: 2
+proverb: dal.smelost-otvaga-trusost.58.1
+about: Из раздела «Смелость — отвага — трусость». У Даля рядом — «Смелость города берет».
+text: У страха глаза велики.
+answer: велики
+gap: 4

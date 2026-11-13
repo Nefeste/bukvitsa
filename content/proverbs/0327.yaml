@@ -11,8 +11,8 @@ source:
   basis: общественное достояние
   url: https://ru.wikisource.org/wiki/Пословицы_русского_народа_(Даль)/Хорошо_—_Худо
   checked_against: текст Викитеки 08.11.2026, не сверено со сканом
-proverb: dal.horosho-hudo.22.1
+proverb: dal.horosho-hudo.15.1
 about: Из раздела «Хорошо — худо». У Даля рядом — «Так хорошо, что любо».
-text: Не спорю, что не стою.
-answer: стою
-gap: 5
+text: И все дело это гроша не стоит.
+answer: стоит
+gap: 7
