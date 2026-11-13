@@ -14,6 +14,8 @@ export interface Play {
   slots: (number | null)[];
   /** ряд букв: места, открытые подсказкой «Открыть букву», — их не убрать */
   locked: boolean[];
+  /** ряд букв: место, выбранное игроком, — туда встанет следующая буква и его откроет «Открыть букву»; `null` — первое свободное */
+  at: number | null;
   /** ряд букв: лишние буквы, погашенные подсказкой «Убрать лишние» */
   hidden: number[];
   /** выбор из четырёх: погашенные варианты (неверные и погашенные подсказкой) */
@@ -40,6 +42,8 @@ export interface Play {
   clean: boolean;
   /** номер последней взятой подсказки (0–3); третья — «Показать ответ» */
   used: number;
+  /** какие подсказки взяты (номера) — у ряда букв и выбора из четырёх первые две берутся в любом порядке */
+  did: number[];
   /** сколько подсказок взято, кроме «Показать ответ» — в итог (0–2) */
   taken: number;
   /** последняя проверка неверна — поле встряхивается (отклик на действие игрока) */
@@ -76,6 +80,7 @@ function blank(task: Task): Play {
     result: { done: false, tries: 0, hints: 0, peeked: false },
     slots: Array(n).fill(null),
     locked: Array(n).fill(false),
+    at: null,
     hidden: [],
     dimmed: [],
     first: null,
@@ -89,6 +94,7 @@ function blank(task: Task): Play {
     sel: m ? nextEmpty(task, marks, -1) : null,
     clean: false,
     used: 0,
+    did: [],
     taken: 0,
     shake: false,
   };
@@ -104,7 +110,7 @@ function filled(task: Task, p: Play): Play {
       taken.add(i);
       return i;
     });
-    return { ...p, slots, locked: slots.map(() => true) };
+    return { ...p, slots, locked: slots.map(() => true), at: null };
   }
   if (task.kind === 'parts') return { ...p, chosen: task.answer.split(',').map(Number) };
   if (task.kind === 'extra-letter') return { ...p, open: Number(task.answer.split(':')[0]) };
@@ -131,14 +137,14 @@ export function usedTiles(p: Play): Set<number> {
   return new Set(p.slots.filter((s): s is number => s != null));
 }
 
-/** Ряд букв: касание буквы — на первое свободное место; ряд заполнен — проверка сразу. */
+/** Ряд букв: касание буквы — на выбранное место, не выбрано — на первое свободное; ряд заполнен — проверка сразу. */
 export function place(task: Task, p: Play, tile: number): Play {
   if (p.result.done || usedTiles(p).has(tile) || p.hidden.includes(tile)) return p;
-  const at = p.slots.findIndex(s => s == null);
+  const at = p.at != null && p.slots[p.at] == null ? p.at : p.slots.findIndex(s => s == null);
   if (at < 0) return p;
   const slots = p.slots.slice();
   slots[at] = tile;
-  const next = { ...p, slots, shake: false };
+  const next = { ...p, slots, at: null, shake: false };
   if (slots.some(s => s == null)) return next;
   const row = task.row ?? [];
   const ok = letters(task).every((c, i) => norm(row[slots[i]!]) === norm(c));
@@ -152,6 +158,22 @@ export function unplace(p: Play, slot: number): Play {
   const slots = p.slots.slice();
   slots[slot] = null;
   return { ...p, slots, shake: false };
+}
+
+/**
+ * Ряд букв: касание места. Пустое — выбирается (второе касание снимает выбор): следующая буква встанет сюда.
+ * Занятое — буква возвращается в ряд, место остаётся выбранным. Открытое подсказкой — не трогается.
+ */
+export function tapSlot(p: Play, slot: number): Play {
+  if (p.result.done || p.locked[slot] || slot < 0 || slot >= p.slots.length) return p;
+  if (p.slots[slot] == null) return { ...p, at: p.at === slot ? null : slot, shake: false };
+  return { ...unplace(p, slot), at: slot };
+}
+
+/** Ряд букв: «Очистить» — все буквы игрока возвращаются в ряд; открытые подсказкой остаются. */
+export function clearRow(p: Play): Play {
+  if (p.result.done || !p.slots.some((s, i) => s != null && !p.locked[i])) return p;
+  return { ...p, slots: p.slots.map((s, i) => (p.locked[i] ? s : null)), at: null, shake: false };
 }
 
 /** Выбор из четырёх: неверный гаснет; после третьего неверного — задача подсмотрена. */
@@ -246,17 +268,35 @@ export function eraseLetter(p: Play): Play {
   return { ...p, marks, shake: false, clean: false };
 }
 
-/** Следующая подсказка вида или `null`, если все взяты. */
+/** Следующая подсказка вида по порядку или `null`, если все взяты. */
 export function nextHint(task: Task, p: Play): number | null {
   if (p.result.done) return null;
-  return HINTS[task.kind].find(h => h > p.used) ?? null;
+  return HINTS[task.kind].find(h => !p.did.includes(h)) ?? null;
 }
 
-/** Подсказка по порядку: бесплатна, без счётчика; третья — «Показать ответ» (задача подсмотрена). */
-export function hint(task: Task, p: Play): Play {
-  const h = nextHint(task, p);
-  if (h == null) return p;
-  const q = { ...p, used: h, taken: p.taken + (h === 3 ? 0 : 1), shake: false };
+/** Виды, где первые две подсказки игрок берёт в любом порядке (08-game-design.md, «Подсказки»). */
+const FREE: Kind[] = ['proverb', 'riddle', 'old-word', 'ending'];
+
+/**
+ * Подсказки, которые можно взять сейчас. У ряда букв и выбора из четырёх — обе первые сразу, в любом порядке;
+ * «Показать ответ» — когда взяты обе. У остальных видов — одна, по порядку.
+ */
+export function openHints(task: Task, p: Play): number[] {
+  const next = nextHint(task, p);
+  if (next == null) return [];
+  if (!FREE.includes(task.kind)) return [next];
+  const rest = HINTS[task.kind].filter(h => h !== 3 && !p.did.includes(h));
+  return rest.length ? rest : [3];
+}
+
+/**
+ * Подсказка: бесплатна, без счётчика; третья — «Показать ответ» (задача подсмотрена). `which` — какую взять из
+ * `openHints`; не названа — следующую по порядку.
+ */
+export function hint(task: Task, p: Play, which?: number): Play {
+  const h = which ?? nextHint(task, p);
+  if (h == null || !openHints(task, p).includes(h)) return p;
+  const q = { ...p, used: h, did: [...p.did, h], taken: p.taken + (h === 3 ? 0 : 1), shake: false };
   if (h === 3) return peek(task, q);
   if (task.kind === 'cipher') {
     const key = cipherKey(task);
@@ -282,19 +322,21 @@ export function hint(task: Task, p: Play): Play {
     const row = task.row ?? [];
     if (h === 1) {
       // лишние буквы гаснут: всё, что сверх букв ответа
-      const need = letters(task).map(norm);
-      const keep = new Set<number>();
-      for (const c of need) {
-        const i = row.findIndex((x, k) => norm(x) === c && !keep.has(k));
+      // буквы, уже открытые подсказкой, — в счёт ответа: гаснет другая такая же
+      const keep = new Set<number>(q.slots.filter((s, i): s is number => s != null && q.locked[i]));
+      letters(task).forEach((c, k) => {
+        if (q.locked[k]) return;
+        const i = row.findIndex((x, j) => norm(x) === norm(c) && !keep.has(j));
         keep.add(i);
-      }
+      });
       const hidden = row.map((_, i) => i).filter(i => !keep.has(i));
       // погашенные буквы, стоявшие на местах, возвращаются
-      return { ...q, hidden, slots: q.slots.map(s => (s != null && hidden.includes(s) ? null : s)) };
+      return { ...q, hidden, slots: q.slots.map((s, i) => (s != null && hidden.includes(s) && !q.locked[i] ? null : s)) };
     }
-    // h === 2: первая ещё не поставленная верно буква ответа встаёт на место
+    // h === 2: буква ответа встаёт на место — на выбранное игроком, если там ещё не верная; иначе на первое такое
     const ans = letters(task);
-    const at = ans.findIndex((c, i) => q.slots[i] == null || norm(row[q.slots[i]!]) !== norm(c));
+    const off = (i: number) => q.slots[i] == null || norm(row[q.slots[i]!]) !== norm(ans[i]);
+    const at = q.at != null && !q.locked[q.at] && off(q.at) ? q.at : ans.findIndex((_, i) => off(i));
     if (at < 0) return q;
     const slots = q.slots.slice();
     slots[at] = null;
@@ -310,7 +352,7 @@ export function hint(task: Task, p: Play): Play {
     slots[at] = tile;
     const locked = q.locked.slice();
     locked[at] = true;
-    const next = { ...q, slots, locked };
+    const next = { ...q, slots, locked, at: null };
     return slots.every(s => s != null) && ans.every((c, i) => norm(row[slots[i]!]) === norm(c)) ? solved(next) : next;
   }
   if (task.kind === 'old-word' || task.kind === 'ending') {

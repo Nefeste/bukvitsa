@@ -193,8 +193,35 @@ try {
       for (const h of [1, 2, 3]) await tap(page, `hint-${h}`);
       check((await page.getByTestId('verdict').textContent()) === 'Подсмотрена', 'загадка: три подсказки — подсмотрена');
     } else {
-      if (kind === 'proverb') await tap(page, 'hint-1');
-      await solve(page, task(first.tasks[k]), kind === 'parts');
+      if (kind === 'proverb') {
+        // ряд букв: подсказки на выбор — сперва «Открыть букву» на выбранном (последнем) месте, потом «Убрать лишние»;
+        // буква на выбранное место; «Очистить» возвращает буквы игрока, открытая подсказкой остаётся
+        const t = task(first.tasks[k]);
+        const ans = t.answer.replace(/-/g, '').split('');
+        const last = ans.length - 1;
+        check((await page.getByTestId('hint-1').count()) === 1 && (await page.getByTestId('hint-2').count()) === 1, 'пословица: обе подсказки на выбор');
+        await tap(page, `slot-${last}`);
+        await tap(page, 'hint-2');
+        check((await page.getByTestId(`slot-${last}`).textContent()) === ans[last].toUpperCase(), 'пословица: «Открыть букву» открыла выбранное место');
+        const opened = t.row!.findIndex(x => x === ans[last]);
+        const taken = new Set<number>([opened]);
+        const tiles = ans.slice(0, last).map(c => {
+          const i = t.row!.findIndex((x, j) => x === c && !taken.has(j));
+          taken.add(i);
+          return i;
+        });
+        if (last >= 2) {
+          await tap(page, 'slot-1');
+          await tap(page, `tile-${tiles[1]}`);
+          check((await page.getByTestId('slot-1').textContent()) === ans[1].toUpperCase() && (await page.getByTestId('slot-0').textContent()) === '', 'пословица: буква встала на выбранное место, не на первое');
+          await snap(page, 'row-choice');
+          await tap(page, 'clear');
+          check((await page.getByTestId('slot-1').textContent()) === '' && (await page.getByTestId(`slot-${last}`).textContent()) !== '', '«Очистить»: буквы игрока убраны, открытая подсказкой осталась');
+        }
+        await tap(page, 'hint-1');
+        for (const i of tiles) await tap(page, `tile-${i}`);
+        await page.getByTestId('source').waitFor();
+      } else await solve(page, task(first.tasks[k]), kind === 'parts');
       check((await page.getByTestId('verdict').textContent())?.startsWith('Верно') === true, `${kind}: решена`);
     }
     if (kind === 'extra-letter') await snap(page, 'extra-letter');

@@ -1,7 +1,7 @@
 // Ход решения (src/engine/play.ts) по 08-game-design.md: ряд букв, выбор из четырёх, найти в строке,
 // расставить части; три подсказки по порядку; подсмотренная задача.
 import { describe, expect, test } from 'bun:test';
-import { EMPTY_RESULT, choose, hint, nextHint, openWord, pickPart, place, startPlay, tapLetter, unplace, unpickPart, usedTiles, type Task } from '../../src/engine';
+import { EMPTY_RESULT, choose, clearRow, openHints, tapSlot, hint, nextHint, openWord, pickPart, place, startPlay, tapLetter, unplace, unpickPart, usedTiles, type Task } from '../../src/engine';
 
 const base = { version: 1, text: '', about: 'о', source: 'и' };
 const proverb: Task = { ...base, id: 'proverb-9001', kind: 'proverb', prompt: 'Скучен день до вечера, коли делать ____.', answer: 'нечего', row: ['е', 'о', 'н', 'ч', 'т', 'г', 'е', 'а', 'о'] };
@@ -37,6 +37,47 @@ describe('ряд букв', () => {
     expect(unplace(p, 0)).toBe(p);
     p = type(proverb, 'ечего', p);
     expect(p.result).toEqual({ done: true, tries: 1, hints: 2, peeked: false });
+  });
+  test('буква встаёт на выбранное место; занятое место по касанию освобождается и остаётся выбранным', () => {
+    let p = tapSlot(startPlay(proverb), 3);
+    expect(p.at).toBe(3);
+    p = place(proverb, p, tileOf(proverb, 'е', usedTiles(p)));
+    expect(p.slots.map(s => (s == null ? '' : proverb.row![s]))).toEqual(['', '', '', 'е', '', '']);
+    expect(p.at).toBeNull();
+    // без выбора — на первое свободное
+    p = place(proverb, p, tileOf(proverb, 'н', usedTiles(p)));
+    expect(p.slots[0]).not.toBeNull();
+    p = tapSlot(p, 3);
+    expect(p.slots[3]).toBeNull();
+    expect(p.at).toBe(3);
+    expect(tapSlot(tapSlot(startPlay(proverb), 2), 2).at).toBeNull();
+    // слово, набранное не по порядку, проверяется так же
+    let q = startPlay(proverb);
+    for (const [slot, c] of [[5, 'о'], [0, 'н'], [4, 'г'], [1, 'е'], [3, 'е'], [2, 'ч']] as [number, string][]) q = place(proverb, tapSlot(q, slot), tileOf(proverb, c, usedTiles(q)));
+    expect(q.result).toEqual({ done: true, tries: 1, hints: 0, peeked: false });
+  });
+  test('подсказки на выбор: сперва «Открыть букву» на выбранном месте, потом «Убрать лишние»; ответ — после обеих', () => {
+    let p = startPlay(proverb);
+    expect(openHints(proverb, p)).toEqual([1, 2]);
+    p = hint(proverb, tapSlot(p, 2), 2);
+    expect(p.locked).toEqual([false, false, true, false, false, false]);
+    expect(proverb.row![p.slots[2]!]).toBe('ч');
+    expect(openHints(proverb, p)).toEqual([1]);
+    expect(hint(proverb, p, 2)).toBe(p);
+    expect(hint(proverb, p, 3)).toBe(p);
+    p = hint(proverb, p, 1);
+    expect(p.slots[2]).not.toBeNull();
+    expect(openHints(proverb, p)).toEqual([3]);
+    p = type(proverb, 'неего', p);
+    expect(p.result).toEqual({ done: true, tries: 1, hints: 2, peeked: false });
+  });
+  test('«Очистить» возвращает буквы игрока; открытая подсказкой остаётся', () => {
+    let p = hint(proverb, startPlay(proverb), 2);
+    p = type(proverb, 'ече', p);
+    p = clearRow(p);
+    expect(p.slots.filter(s => s != null)).toHaveLength(1);
+    expect(p.locked[0]).toBe(true);
+    expect(clearRow(p)).toBe(p);
   });
   test('третья подсказка — задача подсмотрена; подсмотренную можно решить заново', () => {
     let p = startPlay(proverb);

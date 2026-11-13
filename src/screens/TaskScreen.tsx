@@ -1,11 +1,14 @@
 // Экран «Задача» (08-game-design.md, «Шесть видов задач», «Буква на число» — specs/2026-11-cipher.md, «Подсказки», «Откуда это»): условие крупно,
-// поле ответа, ряд букв / варианты / строка / части, три подсказки по порядку. Решил — «Верно» и
+// поле ответа, ряд букв / варианты / строка / части, подсказки (у ряда букв и выбора из четырёх — две на выбор), «Очистить». Решил — «Верно» и
 // карточка «Откуда это» с «Ещё» и «На главную».
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   ALPHABET,
   choose,
+  clearRow,
+  openHints,
+  tapSlot,
   eraseLetter,
   hint,
   pinnedLetters,
@@ -19,7 +22,6 @@ import {
   startPlay,
   tapLetter,
   unpickPart,
-  unplace,
   usedTiles,
   type Play,
   type Task,
@@ -54,6 +56,7 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
     }
   }, [play.result, id, record, results, flow.from]);
   const h = nextHint(task, play);
+  const hs = openHints(task, play);
   const hintLabel = (n: number) =>
     n === 1 && task.kind === 'cipher' ? T.task.hintWrong : n === 2 && task.kind === 'parts' ? T.task.hintPart : n === 2 && task.kind === 'ending' ? T.task.hintFirstWord : n === 1 && task.kind === 'extra-letter' ? T.task.hintWord : T.task.hint[n];
   const back = () => setScreen(flow.from === 'daily' ? { name: 'home' } : { name: 'notebook', key: flow.key });
@@ -118,9 +121,20 @@ export function TaskScreen({ game, flow, id }: { game: Game; flow: Flow; id: str
                   </View>
                 ) : null}
               </View>
-            ) : h != null ? (
-              <Button testID={`hint-${h}`} kind="ghost" label={hintLabel(h)} onPress={() => { cue('hint'); setPlay(p => hint(task, p)); }} />
-            ) : null}
+            ) : (
+              <>
+                {hs.length ? (
+                  // подсказки, которые можно взять сейчас: у ряда букв и выбора из четырёх — обе, в любом порядке
+                  <View style={styles.row}>
+                    {hs.map(n => (
+                      <View key={n} style={{ flex: 1 }}>
+                        <Button testID={`hint-${n}`} kind="ghost" label={hintLabel(n)} onPress={() => { cue('hint'); setPlay(p => hint(task, p, n)); }} />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            )}
           </>
         )}
       </View>
@@ -271,6 +285,7 @@ function Question({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f
         {task.prompt}
       </Txt>
       <Txt dim>{play.first ? (task.kind === 'ending' ? T.task.firstWord(play.first) : T.task.first(play.first)) : T.kind[task.kind].ask}</Txt>
+      {task.kind === 'proverb' || task.kind === 'riddle' ? <Txt dim>{T.task.slotTip}</Txt> : null}
     </View>
   );
 }
@@ -284,6 +299,12 @@ function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: 
     const used = usedTiles(play);
     return (
       <View style={{ gap: 12 }}>
+        {/* «Очистить» — строкой над местами, только когда есть что убирать: место под большой палец не растёт */}
+        {play.slots.some((s, i) => s != null && !play.locked[i]) ? (
+          <Pressable testID="clear" accessibilityRole="button" hitSlop={10} onPress={() => setPlay(p => clearRow(p))} style={styles.clear}>
+            <Text style={styles.clearText}>{T.task.clear}</Text>
+          </Pressable>
+        ) : null}
         <View style={[styles.wrapRow, play.shake && styles.shake]}>
           {play.slots.map((s, i) => (
             <Pressable
@@ -291,8 +312,9 @@ function Answer({ task, play, setPlay }: { task: Task; play: Play; setPlay: (f: 
               testID={`slot-${i}`}
               accessibilityRole="button"
               accessibilityLabel={T.task.slot(i + 1, s == null ? null : row[s].toUpperCase())}
-              onPress={() => setPlay(p => unplace(p, i))}
-              style={[styles.slot, play.locked[i] && styles.slotLocked]}>
+              accessibilityState={{ selected: play.at === i }}
+              onPress={() => setPlay(p => tapSlot(p, i))}
+              style={[styles.slot, play.locked[i] && styles.slotLocked, play.at === i && styles.slotSel]}>
               <Text style={styles.tileText}>{s == null ? '' : row[s].toUpperCase()}</Text>
             </Pressable>
           ))}
@@ -391,6 +413,9 @@ const useStyles = themed((c, z) =>
     answerBox: { minHeight: z(64), gap: 4, padding: 12, borderRadius: R.card, borderWidth: 1, borderColor: c.line, backgroundColor: c.paper },
     slot: { width: z(48), height: z(52), borderRadius: R.tile, backgroundColor: c.cell, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: c.cell },
     slotLocked: { borderColor: c.spruce, backgroundColor: c.paper },
+    clear: { alignSelf: 'flex-end' },
+    clearText: { color: c.inkSoft, fontSize: z(S.small), fontFamily: FONTS.medium, textDecorationLine: 'underline' },
+    slotSel: { borderColor: c.ink, backgroundColor: c.paper },
     tile: { width: z(48), height: z(52), borderRadius: R.tile, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
     tileUsed: { backgroundColor: c.cell, borderColor: c.cell },
     tileText: { fontSize: z(24), color: c.ink, fontFamily: FONTS.title },
